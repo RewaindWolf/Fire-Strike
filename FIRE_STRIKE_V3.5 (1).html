@@ -1,0 +1,3209 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BULLET HELL - CARD SYSTEM</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a0a2e 100%);
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 10px;
+            cursor: default;
+        }
+
+        .main-container {
+            width: 100%;
+            max-width: 900px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* MENU STYLES */
+        .menu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 10, 26, 0.98);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .menu.hidden {
+            display: none;
+        }
+
+        .menu-content {
+            text-align: center;
+            max-width: 650px;
+            padding: 40px;
+            border: 3px solid #0088ff;
+            background: linear-gradient(160deg, #1a1a3a 0%, #12122a 100%);
+            border-radius: 14px;
+            box-shadow: 0 0 30px #0088ff, inset 0 0 40px rgba(0, 136, 255, 0.08);
+            position: relative;
+        }
+
+        .menu-content::before,
+        .menu-content::after {
+            content: '';
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            border: 3px solid #00ffff;
+            opacity: 0.8;
+        }
+        .menu-content::before {
+            top: -3px; left: -3px;
+            border-right: none; border-bottom: none;
+        }
+        .menu-content::after {
+            bottom: -3px; right: -3px;
+            border-left: none; border-top: none;
+        }
+
+        .menu-title {
+            font-size: 48px;
+            font-weight: bold;
+            background: linear-gradient(180deg, #ff66ff 0%, #ff00ff 55%, #aa00ff 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 12px #ff00ff) drop-shadow(0 0 24px rgba(255, 0, 255, 0.5));
+            margin-bottom: 6px;
+            letter-spacing: 3px;
+        }
+
+        .menu-subtitle-divider {
+            width: 140px;
+            height: 2px;
+            margin: 0 auto 20px auto;
+            background: linear-gradient(90deg, transparent, #00ffff, transparent);
+        }
+
+        .menu-button {
+            padding: 15px 40px;
+            font-size: 16px;
+            font-weight: bold;
+            background: linear-gradient(180deg, #66ffff 0%, #00ffff 55%, #00cccc 100%);
+            color: #0a0a1a;
+            border: 2px solid #0088ff;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            min-width: 150px;
+            box-shadow: 0 0 15px #00ffff, 0 0 30px rgba(0, 255, 255, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+            margin: 10px;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+        }
+        
+        .menu-button:hover {
+            box-shadow: 0 0 25px #00ffff, 0 0 50px rgba(0, 255, 255, 0.6), inset 0 2px 10px rgba(255, 255, 255, 0.4);
+            transform: translateY(-2px);
+            border-color: #00ffff;
+        }
+        
+        .menu-button:active {
+            background: linear-gradient(180deg, #00cccc 0%, #00ffff 100%);
+            transform: translateY(1px);
+            box-shadow: 0 0 20px #00ffff, inset 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+
+        /* SKIN SELECTOR */
+        .skin-selector-label {
+            font-size: 11px;
+            color: #ffff00;
+            font-weight: bold;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .skin-selector {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 22px;
+            flex-wrap: wrap;
+        }
+
+        .skin-option {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 6px;
+            border: 2px solid #333355;
+            border-radius: 8px;
+            cursor: pointer;
+            background: rgba(0, 0, 0, 0.25);
+            transition: all 0.15s;
+        }
+
+        .skin-option:hover {
+            border-color: #00ffff;
+        }
+
+        .skin-option.skin-selected {
+            border-color: #ffff00;
+            box-shadow: 0 0 12px #ffff00;
+            background: rgba(255, 255, 0, 0.08);
+        }
+
+        .skin-option canvas {
+            display: block;
+        }
+
+        .skin-name {
+            font-size: 8px;
+            color: #00ffff;
+            font-weight: bold;
+        }
+
+        /* CARD SELECTION OVERLAY */
+        .card-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 10, 26, 0.95);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .card-overlay.hidden {
+            display: none;
+        }
+
+        .card-selection-container {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: nowrap;
+            width: 90%;
+            max-width: 1000px;
+        }
+
+        .card {
+            width: 250px;
+            height: 320px;
+            background: linear-gradient(135deg, #1a0a2e, #2a0a4e);
+            border: 3px solid #00ffff;
+            border-radius: 15px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 0 20px #00ffff, 0 0 40px rgba(0, 255, 255, 0.3);
+            display: flex;
+            flex-direction: column;
+            text-align: center;
+            color: #00ff00;
+            flex-shrink: 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(0, 255, 255, 0.15), transparent);
+            animation: cardGlowPulse 3s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        @keyframes cardGlowPulse {
+            0%, 100% { 
+                transform: translate(0, 0) scale(1);
+                opacity: 0.5;
+            }
+            50% { 
+                transform: translate(15px, 15px) scale(1.15);
+                opacity: 0.8;
+            }
+        }
+
+        .card:hover {
+            border-color: #ff00ff;
+            box-shadow: 0 0 40px #ff00ff, 0 0 60px rgba(255, 0, 255, 0.4), inset 0 0 20px rgba(0, 255, 255, 0.1);
+            transform: scale(1.05);
+        }
+
+        .card.card-mythical {
+            background: linear-gradient(135deg, #4a0a0a, #7a0f0f);
+            border: 3px solid #ff2222;
+            box-shadow: 0 0 25px #ff2222, 0 0 50px rgba(255, 34, 34, 0.4);
+            animation: mythicalCardAura 2s ease-in-out infinite;
+        }
+
+        .card.card-mythical::before {
+            background: radial-gradient(circle, rgba(255, 34, 34, 0.2), transparent);
+            animation: mythicalGlowPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes mythicalCardAura {
+            0%, 100% {
+                box-shadow: 0 0 25px #ff2222, 0 0 40px rgba(255, 34, 34, 0.3);
+            }
+            50% {
+                box-shadow: 0 0 40px #ff2222, 0 0 70px rgba(255, 34, 34, 0.6);
+            }
+        }
+
+        @keyframes mythicalGlowPulse {
+            0%, 100% { 
+                transform: translate(0, 0) scale(1);
+                opacity: 0.4;
+            }
+            50% { 
+                transform: translate(15px, 15px) scale(1.2);
+                opacity: 0.8;
+            }
+        }
+
+        .card.card-mythical:hover {
+            border-color: #ff6666;
+            box-shadow: 0 0 50px #ff3333, 0 0 80px rgba(255, 51, 51, 0.7), inset 0 0 30px rgba(255, 50, 50, 0.2);
+            transform: scale(1.08);
+        }
+
+        .card.card-mythical .card-title {
+            color: #ff5555;
+            text-shadow: 0 0 10px #ff5555;
+        }
+
+        .card.card-mythical .card-description {
+            color: #ffaaaa;
+        }
+
+        .card-mythical-tag {
+            font-size: 9px;
+            color: #ff3333;
+            font-weight: bold;
+            letter-spacing: 2px;
+            margin-bottom: 4px;
+        }
+
+        /* KARTU COMMON HIJAU (stat boost: Damage/Attack Speed/Defense/HP) */
+        .card.card-stat {
+            background: linear-gradient(135deg, #0a3a12, #0f5a1a);
+            border: 3px solid #22ff44;
+            box-shadow: 0 0 20px #22ff44, 0 0 40px rgba(34, 255, 68, 0.35);
+            animation: statCardAura 2.4s ease-in-out infinite;
+        }
+
+        .card.card-stat::before {
+            background: radial-gradient(circle, rgba(34, 255, 68, 0.18), transparent);
+            animation: statGlowPulse 2.4s ease-in-out infinite;
+        }
+
+        @keyframes statCardAura {
+            0%, 100% {
+                box-shadow: 0 0 20px #22ff44, 0 0 35px rgba(34, 255, 68, 0.25);
+            }
+            50% {
+                box-shadow: 0 0 32px #22ff44, 0 0 55px rgba(34, 255, 68, 0.5);
+            }
+        }
+
+        @keyframes statGlowPulse {
+            0%, 100% {
+                transform: translate(0, 0) scale(1);
+                opacity: 0.4;
+            }
+            50% {
+                transform: translate(15px, 15px) scale(1.2);
+                opacity: 0.75;
+            }
+        }
+
+        .card.card-stat:hover {
+            border-color: #77ff99;
+            box-shadow: 0 0 45px #33ff55, 0 0 70px rgba(51, 255, 85, 0.6), inset 0 0 25px rgba(50, 255, 80, 0.2);
+            transform: scale(1.08);
+        }
+
+        .card.card-stat .card-title {
+            color: #55ff77;
+            text-shadow: 0 0 10px #55ff77;
+        }
+
+        .card.card-stat .card-description {
+            color: #aaffbb;
+        }
+
+        .card-stat-tag {
+            font-size: 9px;
+            color: #33ff55;
+            font-weight: bold;
+            letter-spacing: 2px;
+            margin-bottom: 4px;
+        }
+
+        .card-emoji {
+            font-size: 50px;
+            margin-bottom: 10px;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #ff00ff;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px #ff00ff;
+        }
+
+        .card-description {
+            font-size: 11px;
+            color: #00ffff;
+            flex: 1;
+            line-height: 1.5;
+            margin-bottom: 10px;
+        }
+
+        .card-select-btn {
+            background: linear-gradient(135deg, #00ffdd, #00ccaa);
+            border: 2px solid #00ffff;
+            color: #0a0a1a;
+            padding: 8px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+        }
+
+        .card-select-btn:hover {
+            background: linear-gradient(135deg, #00ffff, #00ffdd);
+        }
+
+        /* GAME AREA */
+        .game-area {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            align-items: center;
+            justify-content: flex-start;
+        }
+
+        /* TOP INFO BAR (Wave + Ultimate) */
+        .ultimate-container {
+            background: rgba(0, 255, 255, 0.1);
+            border: 2px solid #00ffff;
+            border-radius: 6px;
+            padding: 8px 10px;
+            width: 400px;
+        }
+
+        .top-info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .wave-badge {
+            font-size: 11px;
+            color: #0a0a1a;
+            background: linear-gradient(180deg, #ffee66, #ffcc00);
+            border: 1px solid #fff2a8;
+            border-radius: 5px;
+            padding: 3px 8px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            box-shadow: 0 0 8px rgba(255, 204, 0, 0.5);
+        }
+
+        .ultimate-label {
+            font-size: 10px;
+            color: #00ffff;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+
+        .audio-toggles {
+            display: flex;
+            gap: 4px;
+        }
+
+        .btn-audio-toggle {
+            width: 22px;
+            height: 22px;
+            border-radius: 5px;
+            border: 1px solid rgba(0, 255, 255, 0.5);
+            background: rgba(0, 255, 255, 0.1);
+            color: #00ffff;
+            font-size: 11px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
+
+        .btn-audio-toggle:active {
+            background: rgba(0, 255, 255, 0.3);
+        }
+
+        .ultimate-bar {
+            width: 100%;
+            height: 18px;
+            background: #0a0a0a;
+            border: 2px solid #00ffff;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .ultimate-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ffcc00, #ff9900);
+            width: 0%;
+            transition: width 0.1s;
+        }
+
+        /* CANVAS WRAPPER */
+        .game-wrapper {
+            position: relative;
+            width: 400px;
+            height: 600px;
+            background: #0a0a1a;
+            border: 6px solid #2a2a4a;
+            border-radius: 16px;
+            box-shadow: 0 0 40px rgba(0, 136, 255, 0.4), inset 0 0 60px rgba(0, 100, 255, 0.06);
+            overflow: hidden;
+        }
+
+        .game-wrapper::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 12px;
+            border: 1px solid rgba(0, 255, 255, 0.35);
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        /* Corner bracket accents (gaya HUD sci-fi) */
+        .frame-corner {
+            position: absolute;
+            width: 26px;
+            height: 26px;
+            border: 3px solid #00ffff;
+            z-index: 51;
+            pointer-events: none;
+            filter: drop-shadow(0 0 4px #00ffff);
+        }
+        .frame-corner.tl { top: 6px; left: 6px; border-right: none; border-bottom: none; border-top-left-radius: 8px; }
+        .frame-corner.tr { top: 6px; right: 6px; border-left: none; border-bottom: none; border-top-right-radius: 8px; }
+        .frame-corner.bl { bottom: 6px; left: 6px; border-right: none; border-top: none; border-bottom-left-radius: 8px; }
+        .frame-corner.br { bottom: 6px; right: 6px; border-left: none; border-top: none; border-bottom-right-radius: 8px; }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            background: #0a0a1a;
+        }
+
+        /* CONTROLS PANEL */
+        .controls-panel {
+            background: linear-gradient(180deg, rgba(255, 32, 85, 0.18), rgba(255, 32, 85, 0.1));
+            border: 2px solid #ff0055;
+            border-radius: 8px;
+            padding: 12px 15px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            width: 400px;
+            box-shadow: 0 0 14px rgba(255, 0, 85, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+
+        .control-label {
+            font-size: 11px;
+            color: #ff0055;
+            text-transform: uppercase;
+            font-weight: bold;
+            min-width: 50px;
+        }
+
+        .button-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-move {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(180deg, #ff6688 0%, #ff2255 45%, #dd0044 100%);
+            border: 2px solid #ff0088;
+            border-radius: 10px;
+            color: #ffff00;
+            font-weight: bold;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 0 10px #ff0055, inset 0 1px 0 rgba(255, 255, 255, 0.5), inset 0 -3px 4px rgba(0, 0, 0, 0.25);
+            flex-shrink: 0;
+        }
+
+        .btn-move:active {
+            background: linear-gradient(180deg, #dd0044 0%, #ff2255 100%);
+            box-shadow: 0 0 6px #ff0055, inset 0 1px 4px rgba(0, 0, 0, 0.4);
+        }
+
+        .skills-grid {
+            display: flex;
+            gap: 10px;
+            flex-wrap: nowrap;
+        }
+
+        .btn-skill {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            font-weight: bold;
+            font-size: 20px;
+            cursor: pointer;
+            flex-shrink: 0;
+            border: 1.5px solid rgba(255, 255, 255, 0.9);
+            text-shadow: -1px 0 rgba(255, 255, 255, 0.85), 1px 0 rgba(255, 255, 255, 0.85), 0 -1px rgba(255, 255, 255, 0.85), 0 1px rgba(255, 255, 255, 0.85);
+        }
+
+        #btnShock {
+            background: radial-gradient(circle at 35% 30%, #ffee88, #ffaa00 70%);
+            box-shadow: 0 0 10px rgba(255, 170, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+        }
+        #btnShield {
+            background: radial-gradient(circle at 35% 30%, #aaddff, #2288ee 70%);
+            box-shadow: 0 0 10px rgba(34, 136, 238, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+        }
+        #btnRegen {
+            background: radial-gradient(circle at 35% 30%, #aaffbb, #22cc55 70%);
+            box-shadow: 0 0 10px rgba(34, 204, 85, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+        }
+        #btnUltimate {
+            background: radial-gradient(circle at 35% 30%, #ffeeaa, #ffcc00 70%);
+            box-shadow: 0 0 10px rgba(255, 204, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+        }
+
+        .btn-skill:disabled {
+            background: #333333;
+            opacity: 0.3;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        /* STATUS PANEL */
+        .status-panel {
+            background: rgba(0, 136, 255, 0.12);
+            border: 2px solid #0088ff;
+            border-radius: 8px;
+            padding: 10px 15px;
+            width: 400px;
+        }
+
+        .stat-bar-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-radius: 6px;
+            padding: 5px 8px;
+            margin-bottom: 6px;
+        }
+
+        .stat-bar-label {
+            font-size: 10px;
+            font-weight: bold;
+            white-space: nowrap;
+            min-width: 42px;
+        }
+
+        .stat-bar-track {
+            flex: 1;
+            height: 12px;
+            background: #0a0a0a;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .stat-bar-fill {
+            height: 100%;
+            width: 0%;
+            transition: width 0.1s;
+        }
+
+        .stat-bar-value {
+            font-size: 9px;
+            font-weight: bold;
+            min-width: 48px;
+            text-align: right;
+        }
+
+        .hp-bar-row {
+            background: rgba(255, 32, 32, 0.12);
+            border: 1px solid #ff3333;
+        }
+        .hp-bar-row .stat-bar-label { color: #ff5555; }
+        .hp-bar-row .stat-bar-track { border: 1px solid #ff3333; }
+        .hp-bar-row .stat-bar-fill { background: linear-gradient(90deg, #ff3333, #ff7777); }
+        .hp-bar-row .stat-bar-value { color: #ff8888; }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .status-item {
+            text-align: center;
+        }
+
+        .status-label {
+            font-size: 8px;
+            color: #00ffff;
+            text-transform: uppercase;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+        }
+
+        .status-value {
+            font-size: 14px;
+            color: #ffff00;
+            font-weight: bold;
+            margin-top: 2px;
+        }
+
+        .level-bar-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(34, 102, 255, 0.15);
+            border: 1px solid #4477ff;
+            border-radius: 6px;
+            padding: 6px 8px;
+            margin-bottom: 6px;
+        }
+
+        .level-label-inline {
+            font-size: 10px;
+            color: #6699ff;
+            font-weight: bold;
+            white-space: nowrap;
+            min-width: 60px;
+        }
+
+        .level-bar {
+            flex: 1;
+            height: 12px;
+            background: #0a0a0a;
+            border: 1px solid #4477ff;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .level-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4477ff, #66aaff);
+            width: 0%;
+            transition: width 0.1s;
+        }
+
+        .level-exp {
+            font-size: 8px;
+            color: #6699ff;
+            font-weight: bold;
+            min-width: 35px;
+            text-align: right;
+        }
+
+        .active-cards {
+            width: 400px;
+            background: rgba(100, 200, 255, 0.1);
+            border: 1px solid #00ffff;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 10px;
+            color: #00ffff;
+            text-align: center;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 1200px) {
+            .card {
+                width: 200px;
+                height: 260px;
+                padding: 12px;
+            }
+
+            .card-emoji {
+                font-size: 40px;
+                margin-bottom: 8px;
+            }
+
+            .card-title {
+                font-size: 14px;
+                margin-bottom: 8px;
+            }
+
+            .card-description {
+                font-size: 10px;
+                line-height: 1.4;
+                margin-bottom: 8px;
+            }
+
+            .card-select-btn {
+                padding: 6px;
+                font-size: 10px;
+            }
+        }
+
+        @media (max-width: 800px) {
+            .card-selection-container {
+                gap: 10px;
+            }
+
+            .card {
+                width: 160px;
+                height: 220px;
+                padding: 10px;
+            }
+
+            .card-emoji {
+                font-size: 32px;
+                margin-bottom: 6px;
+            }
+
+            .card-title {
+                font-size: 12px;
+                margin-bottom: 6px;
+            }
+
+            .card-description {
+                font-size: 9px;
+                line-height: 1.3;
+                margin-bottom: 6px;
+            }
+
+            .card-select-btn {
+                padding: 5px;
+                font-size: 9px;
+            }
+        }
+
+        @media (max-width: 500px) {
+            .card-selection-container {
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+
+            .card {
+                width: 140px;
+                height: 200px;
+                padding: 8px;
+                flex-shrink: 0;
+            }
+
+            .card-emoji {
+                font-size: 28px;
+                margin-bottom: 4px;
+            }
+
+            .card-title {
+                font-size: 11px;
+                margin-bottom: 4px;
+            }
+
+            .card-description {
+                font-size: 8px;
+                line-height: 1.2;
+                margin-bottom: 4px;
+            }
+
+            .card-select-btn {
+                padding: 4px;
+                font-size: 8px;
+            }
+
+            .game-wrapper {
+                width: 100%;
+                max-width: 400px;
+                height: auto;
+                aspect-ratio: 2/3;
+            }
+
+            .ultimate-container,
+            .controls-panel,
+            .status-panel,
+            .active-cards {
+                width: 100%;
+                max-width: 400px;
+            }
+
+            .status-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+
+            .btn-move, .btn-skill {
+                width: 45px;
+                height: 45px;
+                font-size: 18px;
+            }
+
+            .control-label {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- START MENU -->
+    <div class="menu" id="startMenu">
+        <div class="menu-content">
+            <div class="menu-title">⚔️ BULLET HELL ⚔️</div>
+            <div style="font-size: 16px; color: #00ffff; margin-bottom: 12px;">~ CARD SYSTEM EDITION ~</div>
+            <div class="menu-subtitle-divider"></div>
+
+            <div class="skin-selector-label">🚀 PILIH SKIN PESAWAT</div>
+            <div class="skin-selector" id="skinSelector">
+                <div class="skin-option skin-selected" onclick="selectSkin(0)">
+                    <canvas id="skinPreview0" width="56" height="56"></canvas>
+                    <div class="skin-name">Blue Falcon</div>
+                </div>
+                <div class="skin-option" onclick="selectSkin(1)">
+                    <canvas id="skinPreview1" width="56" height="56"></canvas>
+                    <div class="skin-name">Green Viper</div>
+                </div>
+                <div class="skin-option" onclick="selectSkin(2)">
+                    <canvas id="skinPreview2" width="56" height="56"></canvas>
+                    <div class="skin-name">Gold Hawk</div>
+                </div>
+                <div class="skin-option" onclick="selectSkin(3)">
+                    <canvas id="skinPreview3" width="56" height="56"></canvas>
+                    <div class="skin-name">Red Comet</div>
+                </div>
+                <div class="skin-option" onclick="selectSkin(4)">
+                    <canvas id="skinPreview4" width="56" height="56"></canvas>
+                    <div class="skin-name">Silver Ghost</div>
+                </div>
+            </div>
+
+            <div style="font-size: 12px; color: #00ff00; line-height: 1.8; margin-bottom: 20px; text-align: left;">
+                <strong style="color: #ffff00;">🎮 KEYBOARD:</strong><br>
+                A/D - Move | Q - Shock(3s) | W - Shield(4s)<br>
+                E - Regen(7s) | SPACE - Ultimate(16s)<br><br>
+                <strong style="color: #ffff00;">🎴 CARD SYSTEM:</strong><br>
+                Setiap 5 level, pilih 1 dari 3 kartu ability<br>
+                ⚡🎯☄️ Aim Bot, Electro Chain, Meteor2 bisa
+                di-stack (ambil berkali-kali)! 🛡️ Super Shield
+                cuma bisa 1x per game.
+            </div>
+            <button class="menu-button" onclick="startGame()">▶ START GAME</button>
+        </div>
+    </div>
+
+    <!-- GAME OVER MENU -->
+    <div class="menu hidden" id="gameOverMenu">
+        <div class="menu-content">
+            <div class="menu-title">💀 GAME OVER 💀</div>
+            <div style="font-size: 16px; color: #ffff00; margin: 20px 0;">
+                Cycle: <span id="gameOverCycle">0</span> | Wave: <span id="gameOverWave">0</span>
+            </div>
+            <div style="font-size: 13px; color: #00ff00; line-height: 1.8;">
+                Level: <span id="gameOverLevel">1</span><br>
+                Score: <span id="gameOverScore">0</span><br>
+                Enemies Killed: <span id="gameOverEnemies">0</span><br>
+                HP Lost: <span id="gameOverHPLost">0</span> / 450
+            </div>
+            <button class="menu-button" onclick="restartGame()">↻ TRY AGAIN</button>
+        </div>
+    </div>
+
+    <!-- CARD SELECTION OVERLAY -->
+    <div class="card-overlay hidden" id="cardOverlay">
+        <div class="card-selection-container" id="cardContainer"></div>
+    </div>
+
+    <!-- MAIN CONTAINER -->
+    <div class="main-container">
+        <div class="game-area">
+            <!-- TOP INFO: WAVE + ULTIMATE -->
+            <div class="ultimate-container">
+                <div class="top-info-row">
+                    <div class="wave-badge">🌊 WAVE <span id="waveTopVal">1</span>/5</div>
+                    <div class="audio-toggles">
+                        <button class="btn-audio-toggle" id="btnMusicToggle" onclick="toggleMusic()" title="Mute/unmute musik">🔊</button>
+                        <button class="btn-audio-toggle" id="btnSfxToggle" onclick="toggleSfx()" title="Mute/unmute sound effect">🔔</button>
+                    </div>
+                    <div class="ultimate-label">⚡ ULTIMATE ⚡</div>
+                </div>
+                <div class="ultimate-bar">
+                    <div class="ultimate-fill" id="ultimateBarFill"></div>
+                </div>
+            </div>
+
+            <!-- CANVAS -->
+            <div class="game-wrapper">
+                <canvas id="gameCanvas" width="400" height="600"></canvas>
+                <div class="frame-corner tl"></div>
+                <div class="frame-corner tr"></div>
+                <div class="frame-corner bl"></div>
+                <div class="frame-corner br"></div>
+            </div>
+
+            <!-- CONTROLLER -->
+            <div class="controls-panel">
+                <div class="control-label">🎮 CONTROLS</div>
+
+                <div class="button-row">
+                    <button class="btn-move" onmousedown="keyDown('a')" onmouseup="keyUp('a')" ontouchstart="keyDown('a')" ontouchend="keyUp('a')">◀</button>
+                    <button class="btn-move" onmousedown="keyDown('d')" onmouseup="keyUp('d')" ontouchstart="keyDown('d')" ontouchend="keyUp('d')">▶</button>
+                </div>
+
+                <div class="skills-grid">
+                    <button class="btn-skill" id="btnShock" onclick="activateShockwave()" title="Q - 3s CD">⚡</button>
+                    <button class="btn-skill" id="btnShield" onclick="activateShield()" title="W - 4s CD">🛡️</button>
+                    <button class="btn-skill" id="btnRegen" onclick="activateRegen()" title="E - 7s CD">💚</button>
+                    <button class="btn-skill" id="btnUltimate" onclick="activateUltimate()" title="SPACE - 16s CD">✨</button>
+                </div>
+            </div>
+
+            <!-- ACTIVE CARDS -->
+            <div class="active-cards" id="activeCards">无Card Selected Yet</div>
+
+            <!-- STATUS PANEL -->
+            <div class="status-panel">
+                <!-- HP BAR -->
+                <div class="stat-bar-row hp-bar-row">
+                    <div class="stat-bar-label">❤️ HP</div>
+                    <div class="stat-bar-track"><div class="stat-bar-fill" id="hpBarFill"></div></div>
+                    <div class="stat-bar-value" id="hpBarText">450/450</div>
+                </div>
+
+                <!-- EXP / LEVEL BAR -->
+                <div class="level-bar-container">
+                    <div class="level-label-inline">LVL <span id="levelNum">1</span></div>
+                    <div class="level-bar">
+                        <div class="level-bar-fill" id="levelBarFill"></div>
+                    </div>
+                    <div class="level-exp"><span id="levelProgress">0</span><span id="levelExpSuffix">/50</span></div>
+                </div>
+
+                <div class="status-grid">
+                    <div class="status-item">
+                        <div class="status-label">🌊 CYCLE</div>
+                        <div class="status-value" id="cycleVal">1</div>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-label">👾 ENEMIES</div>
+                        <div class="status-value" id="enemyVal">0</div>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-label">📊 SCORE</div>
+                        <div class="status-value" id="scoreVal">0</div>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-label">⭐ KILLED</div>
+                        <div class="status-value" id="killedVal">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const CANVAS_W = 400;
+        const CANVAS_H = 600;
+
+        // ==================== AUDIO SYSTEM (Web Audio API, semua tone di-generate sendiri, TANPA file audio eksternal) ====================
+        let audioCtx = null;
+        let musicEnabled = true;
+        let sfxEnabled = true;
+        let musicNodes = null;
+
+        function getAudioCtx() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            return audioCtx;
+        }
+
+        // Nada sederhana (oscillator + envelope volume) - dasar semua SFX
+        function playTone(freq, duration, type, startGain, endGain, delay) {
+            if (!sfxEnabled) return;
+            const ac = getAudioCtx();
+            const osc = ac.createOscillator();
+            const gain = ac.createGain();
+            osc.type = type || 'square';
+            osc.frequency.setValueAtTime(freq, ac.currentTime + (delay || 0));
+            gain.gain.setValueAtTime(startGain != null ? startGain : 0.15, ac.currentTime + (delay || 0));
+            gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, endGain != null ? endGain : 0.0001), ac.currentTime + (delay || 0) + duration);
+            osc.connect(gain);
+            gain.connect(ac.destination);
+            osc.start(ac.currentTime + (delay || 0));
+            osc.stop(ac.currentTime + (delay || 0) + duration);
+        }
+
+        // Noise burst (untuk ledakan/explosion) - white noise lewat buffer pendek
+        function playNoiseBurst(duration, volume) {
+            if (!sfxEnabled) return;
+            const ac = getAudioCtx();
+            const bufferSize = ac.sampleRate * duration;
+            const buffer = ac.createBuffer(1, bufferSize, ac.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize); // fade out
+            }
+            const noise = ac.createBufferSource();
+            noise.buffer = buffer;
+            const gain = ac.createGain();
+            gain.gain.setValueAtTime(volume != null ? volume : 0.2, ac.currentTime);
+            const filter = ac.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(1800, ac.currentTime);
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(ac.destination);
+            noise.start();
+        }
+
+        function sfxShoot() { playTone(880, 0.06, 'square', 0.06, 0.001, 0); }
+        function sfxHit() { playTone(220, 0.05, 'square', 0.08, 0.001, 0); }
+        function sfxEnemyDeath() { playNoiseBurst(0.25, 0.18); playTone(140, 0.2, 'sawtooth', 0.1, 0.001, 0); }
+        function sfxPlayerHurt() { playTone(180, 0.25, 'sawtooth', 0.18, 0.001, 0); playTone(120, 0.3, 'sawtooth', 0.12, 0.001, 0.05); }
+        function sfxLevelUp() {
+            [523, 659, 784, 1047].forEach((f, i) => playTone(f, 0.15, 'triangle', 0.12, 0.001, i * 0.08));
+        }
+        function sfxCardSelect() { playTone(660, 0.08, 'triangle', 0.12, 0.001, 0); playTone(990, 0.12, 'triangle', 0.1, 0.001, 0.06); }
+        function sfxUltimate() {
+            playNoiseBurst(0.4, 0.15);
+            [220, 440, 660, 880].forEach((f, i) => playTone(f, 0.3, 'sawtooth', 0.1, 0.001, i * 0.04));
+        }
+        function sfxBossSpawn() {
+            playTone(80, 0.6, 'sawtooth', 0.2, 0.001, 0);
+            playTone(60, 0.8, 'sawtooth', 0.15, 0.001, 0.15);
+        }
+        function sfxDodge() { playTone(1200, 0.08, 'sine', 0.08, 0.001, 0); }
+        function sfxPoisonTick() { playTone(300, 0.05, 'sine', 0.04, 0.001, 0); }
+        function sfxGameOver() {
+            [440, 349, 293, 220].forEach((f, i) => playTone(f, 0.35, 'sawtooth', 0.12, 0.001, i * 0.2));
+        }
+
+        // Background music: loop bassline + melodi sederhana gaya chiptune, generate sendiri (bukan file)
+        function startMusic() {
+            if (!musicEnabled || musicNodes) return;
+            const ac = getAudioCtx();
+            const bassNotes = [110, 110, 146.83, 130.81]; // A2, A2, D3, C3
+            const melodyNotes = [440, 523.25, 587.33, 523.25, 440, 349.23, 440, 523.25];
+            let step = 0;
+            const bassInterval = setInterval(() => {
+                if (!musicEnabled) return;
+                playTone(bassNotes[step % bassNotes.length], 0.9, 'triangle', 0.05, 0.001, 0);
+                step++;
+            }, 900);
+            let mStep = 0;
+            const melodyInterval = setInterval(() => {
+                if (!musicEnabled) return;
+                playTone(melodyNotes[mStep % melodyNotes.length], 0.35, 'square', 0.03, 0.001, 0);
+                mStep++;
+            }, 450);
+            musicNodes = { bassInterval, melodyInterval };
+        }
+
+        function stopMusic() {
+            if (musicNodes) {
+                clearInterval(musicNodes.bassInterval);
+                clearInterval(musicNodes.melodyInterval);
+                musicNodes = null;
+            }
+        }
+
+        function toggleMusic() {
+            musicEnabled = !musicEnabled;
+            if (musicEnabled) { startMusic(); } else { stopMusic(); }
+            const btn = document.getElementById('btnMusicToggle');
+            if (btn) btn.textContent = musicEnabled ? '🔊' : '🔇';
+        }
+
+        function toggleSfx() {
+            sfxEnabled = !sfxEnabled;
+            const btn = document.getElementById('btnSfxToggle');
+            if (btn) btn.textContent = sfxEnabled ? '🔔' : '🔕';
+        }
+        // ==================== END AUDIO SYSTEM ====================
+
+        const state = {
+            running: false,
+            gamePaused: false,
+            player: { x: 190, y: 500, w: 20, h: 20, hp: 450, maxHp: 450 },
+            pBullets: [],
+            enemies: [],
+            eBullets: [],
+            particles: [],
+            floatingTexts: [], // Text melayang seperti "MISS!" saat dodge berhasil
+            shakeIntensity: 0,
+            shakeDuration: 0,
+            stars: [],
+            muzzleFlashTimer: 0,
+            playerFireCooldown: 8,
+            meteors: [],               // Meteor2 card objects
+            meteorSpawnCd: 60,         // Cek spawn setiap 60 frame (1 detik)
+            score: 0,
+            levelProgress: 0,
+            level: 1,
+            cycle: 1,
+            wave: 1,
+            keys: {},
+            enemiesDefeated: 0,
+            ultimateCharge: 0,
+            ultimateMax: 100,
+            ultimateCastFlashTimer: 0, // Solid flash (tanpa kedip) beberapa frame saat ultimate DIPAKAI
+            ultimateCd: 0,             // 16s = 960 frames
+            shockwaveCd: 0,            // 3s = 180 frames
+            shieldActive: false,
+            shieldDuration: 0,
+            shieldCd: 0,               // 4s = 240 frames, atau 8s = 480 dengan super_shield
+            regenCd: 0,                // 7s = 420 frames
+            frame: 0,
+            activeCards: [],
+            cardStacks: { aim_bot: 0, electro_chain: 0, meteor2: 0, shotgun: 0, poison: 0, atk_up: 0, aspd_up: 0, def_up: 0, hp_up: 0 }, // Jumlah stack per kartu
+            chainTimer: 0,             // Durasi rantai electro chain aktif (frame)
+            shieldHp: 0,
+            shieldMaxHp: 30,
+            shotgunTimer: 0,           // Cek proc shotgun tiap 60 frame (1 detik)
+            dodgeChance: 0,            // Chance dodge aktif (diisi 0.40 saat kartu dodge diambil, maks 0.70)
+            selectedSkin: 0,           // Index skin pesawat player yang dipilih
+            haoshokuChance: 0,         // Chance proc Haoshoku (diisi 0.10 saat diambil, +2%/trigger, maks 0.40)
+            haoshokuTimer: 0,          // Cek proc Haoshoku tiap 60 frame (1 detik)
+            haoshokuWaveRadius: 0,     // 0 = tidak aktif, >0 = animasi gelombang sedang berjalan
+            haoshokuWaveMaxRadius: 260
+        };
+
+        // CARD DEFINITIONS
+        const CARDS = {
+            ELECTRO_CHAIN: {
+                id: 'electro_chain',
+                name: 'Electro Chain',
+                emoji: '⚡',
+                description: 'Shock menciptakan rantai antar musuh.\nJika 1 musuh diserang, musuh lain\ndi rantai juga terkena serangan.\n[STACK] Tiap kartu tambahan: durasi\nrantai +1 detik. (Maks 6×)'
+            },
+            AIM_BOT: {
+                id: 'aim_bot',
+                name: 'Aim Bot',
+                emoji: '🎯',
+                description: 'Peluru otomatis mengarah ke\nmusuh dengan HP terbanyak.\nChance: +10% per kartu (maks 60%).\n[STACK] Bisa diambil berkali-kali.'
+            },
+            SUPER_SHIELD: {
+                id: 'super_shield',
+                name: 'Super Shield',
+                emoji: '🛡️',
+                description: 'Shield punya HP sendiri (30). Tiap\nhit ke musuh SAAT shield aktif,\npulihkan +1 HP shield (maks 30).\n(Sekali ambil)'
+            },
+            METEOR2: {
+                id: 'meteor2',
+                name: 'Meteor2',
+                emoji: '☄️',
+                description: 'Meteor muncul dari belakang,\nmenghancurkan peluru musuh &\nmenyerang musuh (tidak menyerang\nplayer). 5% chance/detik munculkan\n2 meteor. [STACK] +5% (maks 30%).'
+            },
+            DAMAGE_UP: {
+                id: 'atk_up',
+                name: 'Damage',
+                emoji: '🗡️',
+                category: 'stat',
+                description: 'Meningkatkan damage peluru\nplayer +1 per stack.\n[STACK] Maks 10× (+10 damage).'
+            },
+            ATTACK_SPEED_UP: {
+                id: 'aspd_up',
+                name: 'Attack Speed',
+                emoji: '💨',
+                category: 'stat',
+                description: 'Meningkatkan kecepatan tembak\n+0.1× per stack (peluru lebih\nsering keluar). [STACK] Maks 5×\n(+0.5× / total 1.5× fire rate).'
+            },
+            DEFENSE_UP: {
+                id: 'def_up',
+                name: 'Defense',
+                emoji: '🛡️',
+                category: 'stat',
+                description: 'Mengurangi damage yang diterima\ndari peluru musuh -2 per stack.\n[STACK] Maks 5× (-10 damage,\nminimal damage diterima tetap 1).'
+            },
+            HP_UP: {
+                id: 'hp_up',
+                name: 'HP',
+                emoji: '❤️',
+                category: 'stat',
+                description: 'Meningkatkan max HP +5 &\nlangsung heal +5 saat diambil.\n[STACK] Maks 4× (+20 max HP).'
+            },
+            SHOTGUN: {
+                id: 'shotgun',
+                name: 'Shotgun',
+                emoji: '💥',
+                rarity: 'mythical',
+                description: 'Tiap 1 detik, chance tembak 6\npeluru: depan, 45° kiri & 45°\nkanan. Kiri/kanan memantul &\nsetelah 1x mantul otomatis\nAIM BOT cari musuh terdekat!\n[STACK] Chance +10% (maks 3× = 30%).'
+            },
+            DODGE: {
+                id: 'dodge',
+                name: 'Kenbun no Haki',
+                emoji: '👁️',
+                rarity: 'mythical',
+                description: 'Elak otomatis dari peluru musuh\n(tanpa kena damage, muncul teks\nMISS!). Chance 40%, tiap berhasil\nelak +5% (maks 70%). Muncul di\nslot Mythical (level 5/10/15/dst).\n(Sekali ambil)'
+            },
+            HAOSHOKU: {
+                id: 'haoshoku',
+                name: 'Haoshoku no Haki',
+                emoji: '🌊',
+                rarity: 'mythical',
+                description: 'Tiap 1 detik, chance keluarkan\ngelombang merah gelap ber-petir\nsendiri (terpisah dari Shockwave\nQ). Stun semua musuh & hancurkan\npeluru musuh. Chance 10%, tiap\ntrigger +2% (maks 30%). Muncul di\nslot Mythical (level 5/10/15/dst).\n(Sekali ambil)'
+            },
+            POISON: {
+                id: 'poison',
+                name: 'Poison',
+                emoji: '☠️',
+                rarity: 'mythical',
+                description: 'Peluru (termasuk Aim Bot & Shotgun)\npunya chance 5% dapat efek racun:\n5 damage/1.5 detik selama 15 detik.\n[STACK] Stack 2: durasi jadi 20\ndetik. Stack 3: chance jadi 10%.\n(Maks 3×)'
+            }
+        };
+
+        // v3.4: MYTHICAL_CHANCE (chance-based proc) DIHAPUS - sistem kartu sekarang deterministik per-tier (lihat showCardSelection)
+
+        const STACKABLE_CARD_IDS = ['aim_bot', 'electro_chain', 'meteor2', 'shotgun', 'poison', 'atk_up', 'aspd_up', 'def_up', 'hp_up'];
+        const CARD_STACK_CAPS = { aim_bot: 6, meteor2: 6, electro_chain: 6, shotgun: 3, poison: 3, atk_up: 10, aspd_up: 5, def_up: 5, hp_up: 4 };
+
+        // ============ VISUAL DESIGN SYSTEM (Original, bukan hasil copy asset) - GAYA PIXEL ART ============
+        // Skema warna khusus BOSS - lebih mencolok & besar
+        const BOSS_COLOR_SCHEMES = [
+            { primary: '#ffcc00', secondary: '#2255dd', accent: '#22ff88' }, // boss emas
+            { primary: '#dd2244', secondary: '#661111', accent: '#22ff88' }  // boss merah
+        ];
+
+        // Gaya peluru musuh - dipilih random tiap peluru ditembak
+        const BULLET_STYLES = [
+            { shape: 'dot', color: '#22eeff' },
+            { shape: 'dot', color: '#33ff66' },
+            { shape: 'diamond', color: '#ff33ff' },
+            { shape: 'arrow', color: '#66ff44' },
+            { shape: 'streak', color: '#ff8822' },
+            { shape: 'star', color: '#ffee00' }
+        ];
+
+        function pickRandom(arr) {
+            return arr[Math.floor(Math.random() * arr.length)];
+        }
+
+        // Convert hex (#rrggbb) ke rgba(...) yang valid - dipakai utk gradient/glow yang butuh alpha fade
+        function hexToRgba(hex, alpha) {
+            const clean = hex.replace('#', '');
+            const r = parseInt(clean.substring(0, 2), 16);
+            const g = parseInt(clean.substring(2, 4), 16);
+            const b = parseInt(clean.substring(4, 6), 16);
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        }
+
+        // Cari musuh terdekat dari titik (x,y) - dipakai utk peluru shotgun yang dapat aim bot setelah mantul
+        function findNearestEnemy(x, y) {
+            let nearest = null;
+            let minDistSq = Infinity;
+            state.enemies.forEach(e => {
+                const dx = (e.x + e.w / 2) - x;
+                const dy = (e.y + e.h / 2) - y;
+                const distSq = dx * dx + dy * dy;
+                if (distSq < minDistSq) {
+                    minDistSq = distSq;
+                    nearest = e;
+                }
+            });
+            return nearest;
+        }
+
+        // ---- PIXEL ART RENDERING ENGINE ----
+        // Ray-casting: cek 1 titik ada di dalam polygon atau tidak
+        function pointInPolygon(px, py, poly) {
+            let inside = false;
+            for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+                const xi = poly[i][0], yi = poly[i][1];
+                const xj = poly[j][0], yj = poly[j][1];
+                const intersect = ((yi > py) !== (yj > py)) &&
+                    (px < (xj - xi) * (py - yi) / ((yj - yi) || 0.0001) + xi);
+                if (intersect) inside = !inside;
+            }
+            return inside;
+        }
+
+        // Bikin titik-titik poligon pendekatan lingkaran (buat kokpit/aksen bulat)
+        function circlePoly(cx, cy, r, segments) {
+            const pts = [];
+            segments = segments || 8;
+            for (let i = 0; i < segments; i++) {
+                const a = (i / segments) * Math.PI * 2;
+                pts.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r]);
+            }
+            return pts;
+        }
+
+        // Isi 1 polygon dengan kotak-kotak kecil (gaya pixel/8-bit), bukan smooth fill
+        function fillPolyPixel(targetCtx, polygon, color, pixelSize) {
+            let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+            for (const p of polygon) {
+                if (p[0] < minX) minX = p[0];
+                if (p[0] > maxX) maxX = p[0];
+                if (p[1] < minY) minY = p[1];
+                if (p[1] > maxY) maxY = p[1];
+            }
+            const startX = Math.floor(minX / pixelSize) * pixelSize;
+            const startY = Math.floor(minY / pixelSize) * pixelSize;
+            targetCtx.fillStyle = color;
+            for (let y = startY; y < maxY; y += pixelSize) {
+                for (let x = startX; x < maxX; x += pixelSize) {
+                    if (pointInPolygon(x + pixelSize / 2, y + pixelSize / 2, polygon)) {
+                        targetCtx.fillRect(Math.round(x), Math.round(y), Math.ceil(pixelSize) + 0.5, Math.ceil(pixelSize) + 0.5);
+                    }
+                }
+            }
+        }
+
+        // Gambar kumpulan part {points, color} sebagai 1 ship bergaya pixel
+        // + outline gelap di sekeliling (teknik klasik pixel-art biar sprite lebih "pop"/tegas)
+        function drawPixelParts(targetCtx, parts, pixelSize, outlineColor) {
+            if (outlineColor) {
+                const offsets = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+                parts.forEach(part => {
+                    offsets.forEach(([ox, oy]) => {
+                        const shifted = part.points.map(p => [p[0] + ox * pixelSize, p[1] + oy * pixelSize]);
+                        fillPolyPixel(targetCtx, shifted, outlineColor, pixelSize);
+                    });
+                });
+            }
+            parts.forEach(part => fillPolyPixel(targetCtx, part.points, part.color, pixelSize));
+        }
+
+        // ---- BENTUK SILHOUETTE MUSUH (4 tipe berbeda) ----
+        function shapeInterceptor(w, h, s) {
+            return [
+                { points: [[0, -h * 0.05], [-w * 0.5, h * 0.4], [-w * 0.18, h * 0.15], [0, h * 0.3], [w * 0.18, h * 0.15], [w * 0.5, h * 0.4]], color: s.secondary },
+                { points: [[0, h * 0.48], [-w * 0.22, -h * 0.15], [-w * 0.13, -h * 0.45], [w * 0.13, -h * 0.45], [w * 0.22, -h * 0.15]], color: s.primary },
+                { points: circlePoly(0, 0, w * 0.1, 8), color: s.accent }
+            ];
+        }
+        function shapeBomber(w, h, s) {
+            return [
+                { points: [[0, -h * 0.1], [-w * 0.55, h * 0.4], [-w * 0.15, h * 0.15], [w * 0.15, h * 0.15], [w * 0.55, h * 0.4]], color: s.secondary },
+                { points: [[0, h * 0.45], [-w * 0.22, -h * 0.35], [w * 0.22, -h * 0.35]], color: s.primary },
+                { points: circlePoly(0, 0, w * 0.1, 8), color: s.accent }
+            ];
+        }
+        function shapeStealth(w, h, s) {
+            return [
+                { points: [[0, h * 0.5], [-w * 0.45, 0], [-w * 0.15, -h * 0.45], [w * 0.15, -h * 0.45], [w * 0.45, 0]], color: s.primary },
+                { points: [[-w * 0.45, 0], [-w * 0.15, -h * 0.1], [-w * 0.1, h * 0.1]], color: s.secondary },
+                { points: [[w * 0.45, 0], [w * 0.15, -h * 0.1], [w * 0.1, h * 0.1]], color: s.secondary },
+                { points: circlePoly(0, -h * 0.05, w * 0.11, 8), color: s.accent }
+            ];
+        }
+        function shapeBoss(w, h, s) {
+            return [
+                { points: [[0, -h * 0.15], [-w * 0.65, h * 0.1], [-w * 0.55, h * 0.5], [-w * 0.22, h * 0.2], [0, h * 0.45], [w * 0.22, h * 0.2], [w * 0.55, h * 0.5], [w * 0.65, h * 0.1]], color: s.secondary },
+                { points: [[0, h * 0.55], [-w * 0.3, -h * 0.1], [-w * 0.18, -h * 0.5], [w * 0.18, -h * 0.5], [w * 0.3, -h * 0.1]], color: s.primary },
+                { points: circlePoly(0, -h * 0.05, w * 0.14, 8), color: s.accent }
+            ];
+        }
+        const ENEMY_SHAPE_FNS = { interceptor: shapeInterceptor, bomber: shapeBomber, stealth: shapeStealth, boss: shapeBoss };
+
+        // ---- 9 BENTUK SILHOUETTE TAMBAHAN (total 12 bentuk musuh biasa: 3 lama + 9 baru) ----
+        function shapeTwinBlade(w, h, s) {
+            return [
+                { points: [[-w * 0.6, -h * 0.05], [-w * 0.15, -h * 0.35], [-w * 0.1, h * 0.1], [-w * 0.55, h * 0.4]], color: s.secondary },
+                { points: [[w * 0.6, -h * 0.05], [w * 0.15, -h * 0.35], [w * 0.1, h * 0.1], [w * 0.55, h * 0.4]], color: s.secondary },
+                { points: [[0, -h * 0.45], [-w * 0.15, h * 0.15], [0, h * 0.4], [w * 0.15, h * 0.15]], color: s.primary },
+                { points: circlePoly(0, -h * 0.05, w * 0.09, 8), color: s.accent }
+            ];
+        }
+        function shapeOrbDrone(w, h, s) {
+            return [
+                { points: circlePoly(0, 0, w * 0.42, 10), color: s.primary },
+                { points: [[-w * 0.5, h * 0.05], [-w * 0.3, -h * 0.1], [-w * 0.3, h * 0.2]], color: s.secondary },
+                { points: [[w * 0.5, h * 0.05], [w * 0.3, -h * 0.1], [w * 0.3, h * 0.2]], color: s.secondary },
+                { points: circlePoly(0, 0, w * 0.16, 8), color: s.accent }
+            ];
+        }
+        function shapeCrossFighter(w, h, s) {
+            return [
+                { points: [[-w * 0.5, -h * 0.12], [w * 0.5, -h * 0.12], [w * 0.5, h * 0.12], [-w * 0.5, h * 0.12]], color: s.secondary },
+                { points: [[-h * 0.12, -h * 0.5], [h * 0.12, -h * 0.5], [h * 0.12, h * 0.5], [-h * 0.12, h * 0.5]], color: s.primary },
+                { points: circlePoly(0, 0, w * 0.13, 8), color: s.accent }
+            ];
+        }
+        function shapeDiamondElite(w, h, s) {
+            return [
+                { points: [[0, -h * 0.5], [w * 0.42, 0], [0, h * 0.5], [-w * 0.42, 0]], color: s.primary },
+                { points: [[0, -h * 0.25], [w * 0.2, 0], [0, h * 0.25], [-w * 0.2, 0]], color: s.secondary },
+                { points: circlePoly(0, 0, w * 0.1, 8), color: s.accent }
+            ];
+        }
+        function shapeWasp(w, h, s) {
+            return [
+                { points: [[0, -h * 0.5], [-w * 0.08, -h * 0.1], [w * 0.08, -h * 0.1]], color: s.primary },
+                { points: [[0, -h * 0.1], [-w * 0.6, h * 0.1], [-w * 0.1, h * 0.2], [0, h * 0.5], [w * 0.1, h * 0.2], [w * 0.6, h * 0.1]], color: s.secondary },
+                { points: circlePoly(0, -h * 0.15, w * 0.08, 8), color: s.accent }
+            ];
+        }
+        function shapeSaucer(w, h, s) {
+            return [
+                { points: [[-w * 0.55, 0], [-w * 0.25, -h * 0.22], [w * 0.25, -h * 0.22], [w * 0.55, 0], [w * 0.25, h * 0.22], [-w * 0.25, h * 0.22]], color: s.secondary },
+                { points: circlePoly(0, -h * 0.05, w * 0.22, 10), color: s.primary },
+                { points: circlePoly(0, -h * 0.05, w * 0.1, 8), color: s.accent }
+            ];
+        }
+        function shapeSpike(w, h, s) {
+            return [
+                { points: [[0, -h * 0.5], [w * 0.12, -h * 0.1], [w * 0.5, -h * 0.15], [w * 0.18, h * 0.08], [w * 0.3, h * 0.5], [0, h * 0.2], [-w * 0.3, h * 0.5], [-w * 0.18, h * 0.08], [-w * 0.5, -h * 0.15], [-w * 0.12, -h * 0.1]], color: s.primary },
+                { points: circlePoly(0, 0, w * 0.13, 8), color: s.accent }
+            ];
+        }
+        function shapeTank(w, h, s) {
+            return [
+                { points: [[-w * 0.55, -h * 0.3], [w * 0.55, -h * 0.3], [w * 0.6, h * 0.3], [-w * 0.6, h * 0.3]], color: s.secondary },
+                { points: [[-w * 0.3, -h * 0.45], [w * 0.3, -h * 0.45], [w * 0.35, h * 0.1], [-w * 0.35, h * 0.1]], color: s.primary },
+                { points: circlePoly(0, -h * 0.05, w * 0.12, 8), color: s.accent }
+            ];
+        }
+        function shapePhantom(w, h, s) {
+            return [
+                { points: [[0, -h * 0.55], [-w * 0.22, h * 0.1], [-w * 0.35, h * 0.5], [-w * 0.1, h * 0.25], [0, h * 0.5], [w * 0.1, h * 0.25], [w * 0.35, h * 0.5], [w * 0.22, h * 0.1]], color: s.primary },
+                { points: circlePoly(0, -h * 0.1, w * 0.1, 8), color: s.accent }
+            ];
+        }
+
+        // Daftarkan semua bentuk baru ke ENEMY_SHAPE_FNS
+        Object.assign(ENEMY_SHAPE_FNS, {
+            twinblade: shapeTwinBlade,
+            orbdrone: shapeOrbDrone,
+            crossfighter: shapeCrossFighter,
+            diamondelite: shapeDiamondElite,
+            wasp: shapeWasp,
+            saucer: shapeSaucer,
+            spike: shapeSpike,
+            tank: shapeTank,
+            phantom: shapePhantom
+        });
+
+        // ---- 12 MODEL MUSUH TETAP (bentuk + warna + hurtbox sudah dipasangkan, BUKAN random mix lagi) ----
+        // hurtboxScale: pengali radius tabrakan relatif thd ukuran visual (musuh "ramping" = hurtbox kecil = lebih susah kena; "gempal" = hurtbox besar)
+        const ENEMY_MODELS = [
+            { name: 'Interceptor Merah', shape: 'interceptor', colors: { primary: '#dd2244', secondary: '#ffcc00', accent: '#22dd88' }, hurtboxScale: 0.85 },
+            { name: 'Bomber Biru', shape: 'bomber', colors: { primary: '#2255dd', secondary: '#ffcc00', accent: '#22dd88' }, hurtboxScale: 1.15 },
+            { name: 'Stealth Abu', shape: 'stealth', colors: { primary: '#888899', secondary: '#22ccff', accent: '#22ccff' }, hurtboxScale: 0.75 },
+            { name: 'Twin Blade Emas', shape: 'twinblade', colors: { primary: '#ffaa00', secondary: '#2255dd', accent: '#22dd88' }, hurtboxScale: 0.9 },
+            { name: 'Orb Drone Ungu', shape: 'orbdrone', colors: { primary: '#aa33ff', secondary: '#ff3399', accent: '#22ffff' }, hurtboxScale: 1.0 },
+            { name: 'Cross Fighter Hijau', shape: 'crossfighter', colors: { primary: '#22aa44', secondary: '#ccff33', accent: '#ffee00' }, hurtboxScale: 1.05 },
+            { name: 'Diamond Elite Oranye', shape: 'diamondelite', colors: { primary: '#ff6622', secondary: '#661100', accent: '#ffcc00' }, hurtboxScale: 0.8 },
+            { name: 'Wasp Cyan', shape: 'wasp', colors: { primary: '#00ccdd', secondary: '#ffffff', accent: '#0066aa' }, hurtboxScale: 0.7 },
+            { name: 'Saucer Pink', shape: 'saucer', colors: { primary: '#ff44aa', secondary: '#440066', accent: '#ffccff' }, hurtboxScale: 1.2 },
+            { name: 'Spike Neon', shape: 'spike', colors: { primary: '#222233', secondary: '#ff0044', accent: '#ff0044' }, hurtboxScale: 0.95 },
+            { name: 'Tank Emas Tua', shape: 'tank', colors: { primary: '#aa8822', secondary: '#224422', accent: '#ffee88' }, hurtboxScale: 1.3 },
+            { name: 'Phantom Putih', shape: 'phantom', colors: { primary: '#ddeeff', secondary: '#3388cc', accent: '#00ffff' }, hurtboxScale: 0.65 }
+        ];
+
+        // Gambar pesawat musuh bergaya PIXEL ART (blocky, bukan smooth vector lagi)
+        function drawEnemyShip(e) {
+            const cx = e.x + e.w / 2;
+            const cy = e.y + e.h / 2;
+            const w = e.w;
+            const h = e.h;
+            const s = e.colorScheme;
+            const shapeFn = ENEMY_SHAPE_FNS[e.isBoss ? 'boss' : e.shipType] || shapeInterceptor;
+            const parts = shapeFn(w, h, s);
+            const pixelSize = Math.max(1.3, w / 9);
+
+            ctx.save();
+            ctx.translate(cx, cy);
+            drawPixelParts(ctx, parts, pixelSize, '#0a0a14');
+            ctx.restore();
+        }
+
+        // Gambar peluru musuh dengan gaya bervariasi - REDESIGN v2.7 (fix bug gradient patah + lebih clean & tajam)
+        function drawEnemyBullet(b) {
+            const style = b.style;
+            ctx.save();
+            ctx.translate(b.x, b.y);
+
+            // Aura luar - soft glow yang benar2 fade (pakai hexToRgba, bukan string replace yang salah)
+            const outerGlow = ctx.createRadialGradient(0, 0, 0, 0, 0, 9);
+            outerGlow.addColorStop(0, hexToRgba(style.color, 0.45));
+            outerGlow.addColorStop(1, hexToRgba(style.color, 0));
+            ctx.fillStyle = outerGlow;
+            ctx.beginPath();
+            ctx.arc(0, 0, 9, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Aura tengah - lebih pekat, kasih "isi" ke bentuk sebelum shape utama digambar
+            const midGlow = ctx.createRadialGradient(0, 0, 0, 0, 0, 5.5);
+            midGlow.addColorStop(0, hexToRgba(style.color, 0.55));
+            midGlow.addColorStop(1, hexToRgba(style.color, 0));
+            ctx.fillStyle = midGlow;
+            ctx.beginPath();
+            ctx.arc(0, 0, 5.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Shape utama - solid, tegas, tanpa alpha supaya tetap terlihat jelas di tengah keramaian layar
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = style.color;
+            ctx.strokeStyle = hexToRgba('#000000', 0.35);
+            ctx.lineWidth = 1;
+
+            switch (style.shape) {
+                case 'dot':
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 3.5, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.stroke();
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.arc(-0.8, -0.8, 1.3, 0, Math.PI * 2);
+                    ctx.fill();
+                    break;
+                case 'diamond':
+                    ctx.beginPath();
+                    ctx.moveTo(0, -5);
+                    ctx.lineTo(3.5, 0);
+                    ctx.lineTo(0, 5);
+                    ctx.lineTo(-3.5, 0);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.stroke();
+                    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+                    ctx.beginPath();
+                    ctx.moveTo(-1, -1.5);
+                    ctx.lineTo(0.8, -1.5);
+                    ctx.lineTo(0, 0.5);
+                    ctx.closePath();
+                    ctx.fill();
+                    break;
+                case 'arrow':
+                    ctx.beginPath();
+                    ctx.moveTo(0, 5.5);
+                    ctx.lineTo(-3.5, -3.5);
+                    ctx.lineTo(0, -1);
+                    ctx.lineTo(3.5, -3.5);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.stroke();
+                    break;
+                case 'streak':
+                    ctx.strokeStyle = style.color;
+                    ctx.lineWidth = 3.5;
+                    ctx.lineCap = 'round';
+                    ctx.beginPath();
+                    ctx.moveTo(0, -6.5);
+                    ctx.lineTo(0, 6.5);
+                    ctx.stroke();
+                    ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+                    ctx.lineWidth = 1.2;
+                    ctx.beginPath();
+                    ctx.moveTo(0, -5);
+                    ctx.lineTo(0, 3);
+                    ctx.stroke();
+                    break;
+                case 'star':
+                    ctx.beginPath();
+                    ctx.moveTo(0, -5.5);
+                    ctx.lineTo(1.6, -1.6);
+                    ctx.lineTo(5.5, 0);
+                    ctx.lineTo(1.6, 1.6);
+                    ctx.lineTo(0, 5.5);
+                    ctx.lineTo(-1.6, 1.6);
+                    ctx.lineTo(-5.5, 0);
+                    ctx.lineTo(-1.6, -1.6);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.stroke();
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 1.3, 0, Math.PI * 2);
+                    ctx.fill();
+                    break;
+            }
+
+            ctx.restore();
+        }
+
+        // ---- SKIN PESAWAT PLAYER (5 skin, TIAP SKIN PUNYA BENTUK BERBEDA + gaya pixel art) ----
+        const SHIP_SKINS = [
+            { id: 'blue',   name: 'Blue Falcon',   primary: '#2266dd', secondary: '#88bbff', accent: '#ffffff', engine: '#22ccff', highlight: '#bbe0ff', shape: 'falcon' },
+            { id: 'green',  name: 'Green Viper',   primary: '#229944', secondary: '#88ff99', accent: '#eeffee', engine: '#55ff88', highlight: '#ccffd6', shape: 'viper' },
+            { id: 'gold',   name: 'Gold Hawk',     primary: '#ddaa22', secondary: '#ffe088', accent: '#fff6d5', engine: '#ffcc22', highlight: '#fff3c2', shape: 'hawk' },
+            { id: 'red',    name: 'Red Comet',     primary: '#cc2233', secondary: '#ff8f8f', accent: '#ffe3e3', engine: '#ff5544', highlight: '#ffc2c2', shape: 'comet' },
+            { id: 'silver', name: 'Silver Ghost',  primary: '#8891a0', secondary: '#d3dbe3', accent: '#ffffff', engine: '#66ddff', highlight: '#eef4ff', shape: 'ghost' }
+        ];
+
+        // Bentuk khusus tiap skin PLAYER (moncong menghadap ATAS ke arah musuh) - SEMUA UNIK, tidak sama
+        // v3.5 REVISI: redesign total - badan dibikin LEBAR & angular (bukan ramping/shaft sempit),
+        // cockpit jadi polygon heksagonal menyatu ke badan (bukan lingkaran ngambang di atas leher),
+        // highlight jadi panel band horizontal (bukan garis vertikal di tengah badan)
+        function shapePlayerFalcon(w, h, s) { // Blue Falcon - delta interceptor lebar
+            return [
+                { points: [[-w * 0.08, -h * 0.25], [-w * 0.62, h * 0.38], [-w * 0.54, h * 0.42], [-w * 0.1, h * 0.15]], color: s.secondary },
+                { points: [[w * 0.08, -h * 0.25], [w * 0.62, h * 0.38], [w * 0.54, h * 0.42], [w * 0.1, h * 0.15]], color: s.secondary },
+                { points: [[-w * 0.62, h * 0.38], [-w * 0.54, h * 0.42], [-w * 0.47, h * 0.32]], color: s.engine },
+                { points: [[w * 0.62, h * 0.38], [w * 0.54, h * 0.42], [w * 0.47, h * 0.32]], color: s.engine },
+                { points: [[0, -h * 0.48], [-w * 0.17, -h * 0.2], [-w * 0.2, h * 0.15], [-w * 0.15, h * 0.38], [w * 0.15, h * 0.38], [w * 0.2, h * 0.15], [w * 0.17, -h * 0.2]], color: s.primary },
+                { points: [[-w * 0.15, h * 0.02], [w * 0.15, h * 0.02], [w * 0.13, h * 0.1], [-w * 0.13, h * 0.1]], color: s.highlight },
+                { points: [[0, -h * 0.32], [-w * 0.1, -h * 0.2], [-w * 0.1, -h * 0.04], [0, h * 0.03], [w * 0.1, -h * 0.04], [w * 0.1, -h * 0.2]], color: '#1a1a2e' },
+                { points: [[0, -h * 0.27], [-w * 0.06, -h * 0.18], [-w * 0.06, -h * 0.05], [0, 0], [w * 0.06, -h * 0.05], [w * 0.06, -h * 0.18]], color: s.accent }
+            ];
+        }
+        function shapePlayerViper(w, h, s) { // Green Viper - twin-wing fighter lebar
+            return [
+                { points: [[-w * 0.1, -h * 0.15], [-w * 0.65, h * 0.3], [-w * 0.58, h * 0.4], [-w * 0.14, h * 0.12]], color: s.secondary },
+                { points: [[w * 0.1, -h * 0.15], [w * 0.65, h * 0.3], [w * 0.58, h * 0.4], [w * 0.14, h * 0.12]], color: s.secondary },
+                { points: [[-w * 0.65, h * 0.3], [-w * 0.58, h * 0.4], [-w * 0.48, h * 0.32]], color: s.engine },
+                { points: [[w * 0.65, h * 0.3], [w * 0.58, h * 0.4], [w * 0.48, h * 0.32]], color: s.engine },
+                { points: [[0, -h * 0.46], [-w * 0.19, -h * 0.18], [-w * 0.22, h * 0.18], [-w * 0.14, h * 0.4], [w * 0.14, h * 0.4], [w * 0.22, h * 0.18], [w * 0.19, -h * 0.18]], color: s.primary },
+                { points: [[-w * 0.16, h * 0.06], [w * 0.16, h * 0.06], [w * 0.14, h * 0.14], [-w * 0.14, h * 0.14]], color: s.highlight },
+                { points: [[0, -h * 0.3], [-w * 0.1, -h * 0.16], [-w * 0.07, h * 0.03], [w * 0.07, h * 0.03], [w * 0.1, -h * 0.16]], color: '#0d1a10' },
+                { points: [[0, -h * 0.25], [-w * 0.06, -h * 0.14], [-w * 0.04, -h * 0.01], [w * 0.04, -h * 0.01], [w * 0.06, -h * 0.14]], color: s.accent }
+            ];
+        }
+        function shapePlayerHawk(w, h, s) { // Gold Hawk - diamond stealth lebar & pipih
+            return [
+                { points: [[0, h * 0.4], [-w * 0.55, h * 0.05], [-w * 0.35, -h * 0.15], [-w * 0.15, -h * 0.4], [w * 0.15, -h * 0.4], [w * 0.35, -h * 0.15], [w * 0.55, h * 0.05]], color: s.primary },
+                { points: [[-w * 0.55, h * 0.05], [-w * 0.35, -h * 0.15], [-w * 0.22, -h * 0.02], [-w * 0.3, h * 0.12]], color: s.secondary },
+                { points: [[w * 0.55, h * 0.05], [w * 0.35, -h * 0.15], [w * 0.22, -h * 0.02], [w * 0.3, h * 0.12]], color: s.secondary },
+                { points: [[-w * 0.55, h * 0.05], [-w * 0.46, h * 0.1], [-w * 0.44, h * 0.0], [-w * 0.5, -h * 0.02]], color: s.engine },
+                { points: [[w * 0.55, h * 0.05], [w * 0.46, h * 0.1], [w * 0.44, h * 0.0], [w * 0.5, -h * 0.02]], color: s.engine },
+                { points: [[-w * 0.12, -h * 0.05], [w * 0.12, -h * 0.05], [w * 0.1, h * 0.05], [-w * 0.1, h * 0.05]], color: s.highlight },
+                { points: [[0, -h * 0.28], [-w * 0.14, -h * 0.1], [0, h * 0.14], [w * 0.14, -h * 0.1]], color: '#2e2408' },
+                { points: [[0, -h * 0.2], [-w * 0.08, -h * 0.08], [0, h * 0.06], [w * 0.08, -h * 0.08]], color: s.accent }
+            ];
+        }
+        function shapePlayerComet(w, h, s) { // Red Comet - arrow lebar
+            return [
+                { points: [[-w * 0.1, -h * 0.1], [-w * 0.5, h * 0.35], [-w * 0.42, h * 0.4], [-w * 0.14, h * 0.15]], color: s.secondary },
+                { points: [[w * 0.1, -h * 0.1], [w * 0.5, h * 0.35], [w * 0.42, h * 0.4], [w * 0.14, h * 0.15]], color: s.secondary },
+                { points: [[-w * 0.5, h * 0.35], [-w * 0.42, h * 0.4], [-w * 0.36, h * 0.3]], color: s.engine },
+                { points: [[w * 0.5, h * 0.35], [w * 0.42, h * 0.4], [w * 0.36, h * 0.3]], color: s.engine },
+                { points: [[0, -h * 0.5], [-w * 0.16, -h * 0.18], [-w * 0.17, h * 0.2], [-w * 0.1, h * 0.4], [w * 0.1, h * 0.4], [w * 0.17, h * 0.2], [w * 0.16, -h * 0.18]], color: s.primary },
+                { points: [[-w * 0.09, h * 0.0], [w * 0.09, h * 0.0], [w * 0.08, h * 0.1], [-w * 0.08, h * 0.1]], color: s.highlight },
+                { points: [[0, -h * 0.32], [-w * 0.08, -h * 0.16], [0, h * 0.0], [w * 0.08, -h * 0.16]], color: '#330a0e' },
+                { points: [[0, -h * 0.26], [-w * 0.045, -h * 0.14], [0, -h * 0.02], [w * 0.045, -h * 0.14]], color: s.accent }
+            ];
+        }
+        function shapePlayerGhost(w, h, s) { // Silver Ghost - flying wing lebar & pipih
+            return [
+                { points: [[-w * 0.1, -h * 0.02], [-w * 0.68, h * 0.24], [-w * 0.68, h * 0.34], [-w * 0.16, h * 0.2], [-w * 0.12, h * 0.05]], color: s.secondary },
+                { points: [[w * 0.1, -h * 0.02], [w * 0.68, h * 0.24], [w * 0.68, h * 0.34], [w * 0.16, h * 0.2], [w * 0.12, h * 0.05]], color: s.secondary },
+                { points: [[-w * 0.68, h * 0.24], [-w * 0.68, h * 0.34], [-w * 0.58, h * 0.28]], color: s.engine },
+                { points: [[w * 0.68, h * 0.24], [w * 0.68, h * 0.34], [w * 0.58, h * 0.28]], color: s.engine },
+                { points: [[0, -h * 0.4], [-w * 0.18, -h * 0.05], [-w * 0.2, h * 0.22], [-w * 0.1, h * 0.35], [w * 0.1, h * 0.35], [w * 0.2, h * 0.22], [w * 0.18, -h * 0.05]], color: s.primary },
+                { points: [[-w * 0.14, h * 0.08], [w * 0.14, h * 0.08], [w * 0.12, h * 0.16], [-w * 0.12, h * 0.16]], color: s.highlight },
+                { points: [[0, -h * 0.24], [-w * 0.11, -h * 0.08], [-w * 0.09, h * 0.1], [0, h * 0.16], [w * 0.09, h * 0.1], [w * 0.11, -h * 0.08]], color: '#20262e' },
+                { points: [[0, -h * 0.18], [-w * 0.06, -h * 0.06], [-w * 0.05, h * 0.08], [0, h * 0.12], [w * 0.05, h * 0.08], [w * 0.06, -h * 0.06]], color: s.accent }
+            ];
+        }
+        const PLAYER_SHAPE_FNS = { falcon: shapePlayerFalcon, viper: shapePlayerViper, hawk: shapePlayerHawk, comet: shapePlayerComet, ghost: shapePlayerGhost };
+
+        // Gambar pesawat PLAYER bergaya PIXEL ART, bentuk BEDA tiap skin (dipakai in-game & preview)
+        function drawPlayerShipOnto(targetCtx, cx, cy, w, h, skin, engineFlicker) {
+            const shapeFn = PLAYER_SHAPE_FNS[skin.shape] || shapePlayerFalcon;
+            const parts = shapeFn(w, h, skin);
+            const pixelSize = Math.max(1.5, w / 11);
+
+            targetCtx.save();
+            targetCtx.translate(cx, cy);
+
+            // Engine glow (kiri & kanan belakang) - kotak kecil biar konsisten gaya pixel
+            const engineSize = Math.max(2, w * 0.09);
+            const ex1 = -w * 0.2, ex2 = w * 0.2, ey = h * 0.32 + engineSize / 2;
+            const flick = engineFlicker !== undefined ? engineFlicker : 1;
+
+            [ex1, ex2].forEach(ex => {
+                // Outer glow (radial, lembut & lebih besar dari kotak solid)
+                const glowR = engineSize * 2.2;
+                const grad = targetCtx.createRadialGradient(ex, ey, 0, ex, ey, glowR);
+                grad.addColorStop(0, hexToRgba(skin.engine, 0.85 * flick));
+                grad.addColorStop(0.5, hexToRgba(skin.engine, 0.35 * flick));
+                grad.addColorStop(1, hexToRgba(skin.engine, 0));
+                targetCtx.fillStyle = grad;
+                targetCtx.beginPath();
+                targetCtx.arc(ex, ey, glowR, 0, Math.PI * 2);
+                targetCtx.fill();
+
+                // Inti solid kecil (biar tetap ada kesan pixel-art tegas di tengah)
+                targetCtx.globalAlpha = flick;
+                targetCtx.fillStyle = skin.engine;
+                targetCtx.fillRect(ex - engineSize / 2, ey - engineSize / 2, engineSize, engineSize);
+                targetCtx.fillStyle = '#ffffff';
+                targetCtx.globalAlpha = flick * 0.8;
+                targetCtx.fillRect(ex - engineSize / 4, ey - engineSize / 4, engineSize / 2, engineSize / 2);
+                targetCtx.globalAlpha = 1;
+            });
+
+            drawPixelParts(targetCtx, parts, pixelSize, '#0a0a14');
+
+            targetCtx.restore();
+        }
+
+        function drawPlayerShip(e) {
+            const skin = SHIP_SKINS[state.selectedSkin] || SHIP_SKINS[0];
+            const flicker = 0.7 + 0.3 * Math.sin(state.frame * 0.5);
+            drawPlayerShipOnto(ctx, e.x + e.w / 2, e.y + e.h / 2, e.w * 1.8, e.h * 1.8, skin, flicker);
+        }
+
+        // Render preview skin kecil di start menu (dipanggil sekali saat halaman siap)
+        function renderSkinPreviews() {
+            SHIP_SKINS.forEach((skin, idx) => {
+                const c = document.getElementById('skinPreview' + idx);
+                if (!c) return;
+                const pctx = c.getContext('2d');
+                pctx.clearRect(0, 0, c.width, c.height);
+                drawPlayerShipOnto(pctx, c.width / 2, c.height / 2, c.width * 0.85, c.height * 0.85, skin, 1);
+            });
+        }
+
+        function selectSkin(idx) {
+            state.selectedSkin = idx;
+            document.querySelectorAll('.skin-option').forEach((el, i) => {
+                el.classList.toggle('skin-selected', i === idx);
+            });
+        }
+
+        // ---- BULLET PLAYER DIPERBAGUS (energy blast dengan trail + multi-layer glow) ----
+        function drawPlayerBulletFX(b) {
+            ctx.save();
+
+            // POISON CARD: kalau peluru ini dapat efek racun, render dengan warna HIJAU RADIOAKTIF (bukan cyan biasa)
+            const rgb = b.poisoned ? '57, 255, 20' : '34, 238, 255';
+            const trailRgb = b.poisoned ? '150, 255, 60' : '136, 255, 255';
+            const coreColor = b.poisoned ? '#eaffcc' : '#ffffff';
+            const innerColor = b.poisoned ? '#ccff88' : '#ddffff';
+            const sparkleColor = b.poisoned ? '#aaff33' : '#88ffff';
+
+            // Layer 1: Outer glow luar (gradual fade, besar)
+            const gradient1 = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, 12);
+            gradient1.addColorStop(0, `rgba(${rgb}, 0.5)`);
+            gradient1.addColorStop(0.7, `rgba(${rgb}, 0.1)`);
+            gradient1.addColorStop(1, `rgba(${rgb}, 0)`);
+            ctx.fillStyle = gradient1;
+            ctx.beginPath();
+            ctx.arc(b.x, b.y, 12, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Layer 2: Mid glow (medium)
+            const gradient2 = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, 8);
+            gradient2.addColorStop(0, `rgba(${rgb}, 0.7)`);
+            gradient2.addColorStop(1, `rgba(${rgb}, 0)`);
+            ctx.fillStyle = gradient2;
+            ctx.beginPath();
+            ctx.arc(b.x, b.y, 8, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Layer 3: Trail effect (garis dari belakang)
+            ctx.strokeStyle = `rgba(${trailRgb}, 0.6)`;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(b.x, b.y + 12);
+            ctx.lineTo(b.x, b.y - 8);
+            ctx.stroke();
+
+            // Layer 4: Inti terang (bright core)
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = coreColor;
+            ctx.beginPath();
+            ctx.ellipse(b.x, b.y, 3, 6, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Layer 5: Inner bright accent
+            ctx.fillStyle = innerColor;
+            ctx.beginPath();
+            ctx.arc(b.x, b.y, 2, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Layer 6: Percikan energi dinamis (lebih banyak, lebih tersebar)
+            ctx.fillStyle = sparkleColor;
+            const sparkles = [
+                {x: -5, y: -3}, {x: 4, y: -4}, {x: -3, y: 5}, 
+                {x: 5, y: 6}, {x: -6, y: 2}, {x: 3, y: -6}
+            ];
+            sparkles.forEach(s => {
+                ctx.fillRect(b.x + s.x, b.y + s.y, 2, 2);
+            });
+
+            ctx.restore();
+        }
+        // ============ END VISUAL DESIGN SYSTEM ============
+
+        function isCardStillAvailable(card) {
+            if (STACKABLE_CARD_IDS.includes(card.id)) {
+                const stacks = state.cardStacks[card.id] || 0;
+                return stacks < CARD_STACK_CAPS[card.id];
+            }
+            return !state.activeCards.includes(card.id);
+        }
+
+        // KARTU COMMON (hijau): pool khusus stat boost
+        function getAvailableCommonCards() {
+            return [CARDS.DAMAGE_UP, CARDS.ATTACK_SPEED_UP, CARDS.DEFENSE_UP, CARDS.HP_UP].filter(isCardStillAvailable);
+        }
+        // KARTU SPESIAL (biru, default): pool ability dasar
+        function getAvailableSpecialCards() {
+            return [CARDS.ELECTRO_CHAIN, CARDS.AIM_BOT, CARDS.SUPER_SHIELD, CARDS.METEOR2].filter(isCardStillAvailable);
+        }
+        // KARTU MYTHICAL (merah): pool ability langka
+        function getAvailableMythicalCards() {
+            return [CARDS.SHOTGUN, CARDS.HAOSHOKU, CARDS.DODGE, CARDS.POISON].filter(isCardStillAvailable);
+        }
+
+        // v3.4: CARD BALANCE SYSTEM - deterministik berdasar level, BUKAN random-chance pool lagi.
+        // - Level BUKAN kelipatan 5 (1,2,3,4,6,7,8,9,11,...): 2 kartu Common (hijau) + 1 kartu Spesial (biru)
+        // - Level KELIPATAN 5 (5,10,15,20,...): 1 kartu Mythical (merah) - Kenbun & Haoshoku ikut random di slot ini juga,
+        //   TIDAK ADA LAGI jaminan khusus di level 1/2 (sudah dihapus sesuai keputusan user)
+        function showCardSelection() {
+            let cards;
+            if (state.level % 5 === 0) {
+                const mythicalPool = getAvailableMythicalCards();
+                cards = mythicalPool.length > 0 ? [pickRandom(mythicalPool)] : [];
+            } else {
+                const commonPool = shuffleArray(getAvailableCommonCards());
+                const specialPool = shuffleArray(getAvailableSpecialCards());
+                cards = [...commonPool.slice(0, 2), ...specialPool.slice(0, 1)];
+            }
+
+            // Kalau gak ada kartu tersedia sama sekali di tier ini (semua sudah maks/diambil), skip aja, lanjut main tanpa popup
+            if (cards.length === 0) return;
+
+            state.gamePaused = true;
+            const overlay = document.getElementById('cardOverlay');
+            const container = document.getElementById('cardContainer');
+            container.innerHTML = '';
+
+            cards.forEach(card => {
+                const cardEl = document.createElement('div');
+                const isMythical = card.rarity === 'mythical';
+                const isStat = card.category === 'stat';
+                cardEl.className = 'card' + (isMythical ? ' card-mythical' : '') + (isStat ? ' card-stat' : '');
+                cardEl.innerHTML = `
+                    ${isMythical ? '<div class="card-mythical-tag">★ MYTHICAL ★</div>' : ''}
+                    ${isStat ? '<div class="card-stat-tag">COMMON</div>' : ''}
+                    <div class="card-emoji">${card.emoji}</div>
+                    <div class="card-title">${card.name}</div>
+                    <div class="card-description">${card.description}</div>
+                    <button class="card-select-btn" onclick="selectCard('${card.id}')">SELECT</button>
+                `;
+                container.appendChild(cardEl);
+            });
+
+            overlay.classList.remove('hidden');
+        }
+
+        function selectCard(cardId) {
+            sfxCardSelect();
+            if (STACKABLE_CARD_IDS.includes(cardId)) {
+                state.cardStacks[cardId] = (state.cardStacks[cardId] || 0) + 1;
+                if (!state.activeCards.includes(cardId)) {
+                    state.activeCards.push(cardId);
+                }
+                // KARTU HP (v3.3): efeknya langsung sekali pas diambil (bukan terus-menerus dibaca kayak damage/aspd/defense)
+                if (cardId === 'hp_up') {
+                    state.player.maxHp += 5;
+                    state.player.hp = Math.min(state.player.maxHp, state.player.hp + 5);
+                }
+            } else {
+                state.activeCards.push(cardId);
+                if (cardId === 'dodge') {
+                    state.dodgeChance = 0.40; // Base chance dodge saat kartu diambil
+                }
+                if (cardId === 'haoshoku') {
+                    state.haoshokuChance = 0.10; // Base chance proc Haoshoku saat kartu diambil
+                }
+            }
+            updateActiveCardsDisplay();
+            document.getElementById('cardOverlay').classList.add('hidden');
+            state.gamePaused = false;
+        }
+
+        function updateActiveCardsDisplay() {
+            const labels = state.activeCards.map(id => {
+                const card = Object.values(CARDS).find(c => c.id === id);
+                const name = card ? card.name : 'Unknown';
+                if (STACKABLE_CARD_IDS.includes(id)) {
+                    const stacks = state.cardStacks[id] || 1;
+                    return `${name} x${stacks}`;
+                }
+                return name;
+            });
+            document.getElementById('activeCards').textContent = 'Active Cards: ' + (labels.length > 0 ? labels.join(' | ') : 'None');
+        }
+
+        function circleCollide(x1, y1, r1, x2, y2, r2) {
+            const dx = x1 - x2, dy = y1 - y2;
+            return Math.sqrt(dx * dx + dy * dy) < r1 + r2;
+        }
+
+        function createParticles(x, y, vx, vy, count, color) {
+            for (let i = 0; i < count; i++) {
+                state.particles.push({
+                    x, y,
+                    vx: vx + (Math.random() - 0.5) * 3,
+                    vy: vy + (Math.random() - 0.5) * 3,
+                    life: 30,
+                    maxLife: 30,
+                    color
+                });
+            }
+        }
+
+        // Text melayang ke atas lalu memudar (dipakai untuk "MISS!" saat dodge, dsb)
+        function createFloatingText(x, y, text, color) {
+            state.floatingTexts.push({
+                x, y, text, color,
+                vy: -1.1,
+                life: 40,
+                maxLife: 40
+            });
+        }
+
+        // Fungsi TERPUSAT utk proses level up - dipanggil dari SEMUA sumber exp (kill & hit)
+        // Pakai while loop (bukan if) supaya kalau exp numpuk sekaligus, semua level ke-proses, bukan cuma 1x
+        function addLevelProgress(amount) {
+            if (state.level >= 300) return;
+            state.levelProgress += amount;
+            let leveledUp = false;
+            while (state.levelProgress >= 50 && state.level < 300) {
+                state.levelProgress -= 50;
+                state.level++;
+                leveledUp = true;
+                if (state.level >= 300) {
+                    state.level = 300;
+                    state.levelProgress = 0;
+                }
+            }
+            // BUG FIX PENTING: cek card selection HANYA kalau level BENERAN baru naik di pemanggilan ini.
+            // Sebelumnya cek ini jalan di LUAR while-loop tanpa guard, jadi selama state.level masih
+            // persis di angka kelipatan 5 (level blm naik lagi), SETIAP hit peluru (+1 exp) re-trigger
+            // showCardSelection() lagi & lagi -> kartu kerasa "muncul terus/spam" walau level belum naik.
+            if (!leveledUp) return;
+            sfxLevelUp();
+
+            // v3.4: SETIAP level naik selalu munculkan pilihan kartu. Tier (common+special / mythical)
+            // ditentukan DI DALAM showCardSelection() berdasarkan state.level % 5, gak ada lagi
+            // jaminan khusus Dodge (dulu level 1) / Haoshoku (dulu level 2) - sekarang full random di slot mythical.
+            showCardSelection();
+        }
+
+        function triggerScreenShake(intensity, duration) {
+            state.shakeIntensity = Math.max(state.shakeIntensity, intensity);
+            state.shakeDuration = Math.max(state.shakeDuration, duration);
+        }
+
+        // BALANCE: getEnemyBulletDamage (scaling damage per cycle) DITUNDA dulu, dikerjain lain kali.
+        // Damage peluru musuh balik flat 10 seperti semula untuk sekarang.
+
+        // STARFIELD: bintang parallax scrolling di background (generate sekali, di-reuse terus)
+        function initStars() {
+            state.stars = [];
+            for (let i = 0; i < 60; i++) {
+                state.stars.push({
+                    x: Math.random() * CANVAS_W,
+                    y: Math.random() * CANVAS_H,
+                    size: Math.random() * 1.8 + 0.4,
+                    speed: Math.random() * 1.5 + 0.4,
+                    alpha: Math.random() * 0.6 + 0.3
+                });
+            }
+        }
+
+        function killEnemy(e, scoreBonus, levelBonus, particleColor, particleCount) {
+            state.enemiesDefeated++;
+            state.score += scoreBonus;
+            createParticles(e.x, e.y, 0, 0, particleCount || 20, particleColor || '#ffff00');
+            sfxEnemyDeath();
+            if (e.isBoss) triggerScreenShake(8, 25);
+            addLevelProgress(levelBonus);
+        }
+
+        function spawnMeteors() {
+            const centerX = state.player.x + state.player.w / 2;
+            const offsets = [-25, 25];
+            offsets.forEach(offsetX => {
+                state.meteors.push({
+                    x: centerX + offsetX,
+                    baseX: centerX + offsetX,
+                    y: state.player.y + 25,
+                    phase: Math.random() * Math.PI * 2,
+                    hitEnemies: new Set()
+                });
+            });
+            createParticles(centerX, state.player.y + 20, 0, 3, 15, '#ff6600');
+        }
+
+        // SHOTGUN CARD: tembak 6 peluru (2 depan, 2 kiri 45°, 2 kanan 45°). Kiri/kanan bisa memantul.
+        // POISON CARD: roll chance dapat efek racun ke sebuah peluru (dipanggil dari semua sumber peluru player)
+        // Stack 1-2: chance 5%. Stack 3: chance naik jadi 10%.
+        // KARTU COMMON STAT (v3.3): helper baca nilai stat player saat ini berdasarkan jumlah stack
+        function getPlayerDamage() {
+            return 1 + (state.cardStacks.atk_up || 0); // base 1 + stack Damage card
+        }
+        function getPlayerAttackSpeedMult() {
+            return 1 + 0.1 * (state.cardStacks.aspd_up || 0); // base 1.0x + 0.1x/stack Attack Speed card
+        }
+        function getPlayerDefense() {
+            return 2 * (state.cardStacks.def_up || 0); // 0 + 2/stack Defense card
+        }
+
+        function rollPoisonProc(bullet) {
+            if (state.activeCards.includes('poison')) {
+                const stacks = state.cardStacks.poison || 1;
+                const chance = stacks >= 3 ? 0.10 : 0.05;
+                if (Math.random() < chance) {
+                    bullet.poisoned = true;
+                }
+            }
+        }
+
+        function fireShotgunBurst() {
+            sfxShoot();
+            state.muzzleFlashTimer = 8;
+            const px = state.player.x + state.player.w / 2;
+            const py = state.player.y;
+            const speed = 9; // Diturunkan (sebelumnya 14, sebelum itu 7)
+            const diag = speed * Math.SQRT1_2;
+
+            // 2 peluru lurus ke depan
+            for (let i = 0; i < 2; i++) {
+                const b = {
+                    x: px + (i === 0 ? -4 : 4), y: py,
+                    vx: 0, vy: -speed,
+                    w: 4, h: 10,
+                    targetEnemy: null,
+                    bounce: false
+                };
+                rollPoisonProc(b);
+                state.pBullets.push(b);
+            }
+            // 2 peluru 45° kiri (bisa memantul di dinding, hilang setelah 4x mantul)
+            for (let i = 0; i < 2; i++) {
+                const b = {
+                    x: px, y: py,
+                    vx: -diag, vy: -diag,
+                    w: 4, h: 10,
+                    targetEnemy: null,
+                    bounce: true,
+                    bounceCount: 0
+                };
+                rollPoisonProc(b);
+                state.pBullets.push(b);
+            }
+            // 2 peluru 45° kanan (bisa memantul di dinding, hilang setelah 4x mantul)
+            for (let i = 0; i < 2; i++) {
+                const b = {
+                    x: px, y: py,
+                    vx: diag, vy: -diag,
+                    w: 4, h: 10,
+                    targetEnemy: null,
+                    bounce: true,
+                    bounceCount: 0
+                };
+                rollPoisonProc(b);
+                state.pBullets.push(b);
+            }
+            createParticles(px, py, 0, -3, 20, '#ff8800');
+        }
+
+        // HAOSHOKU NO HAKI CARD: gelombang merah gelap sendiri - stun semua musuh & hancurkan peluru musuh
+        function triggerHaoshokuWave() {
+            const px = state.player.x + state.player.w / 2;
+            const py = state.player.y + state.player.h / 2;
+
+            // Stun semua musuh di layar
+            state.enemies.forEach(e => {
+                e.stunned = true;
+                e.stunTimer = 120;
+                e.stunSource = 'haoshoku'; // Sumber stun = Haoshoku -> visual merah + petir
+            });
+            // Hancurkan semua peluru musuh yang sedang di layar
+            state.eBullets = [];
+
+            state.haoshokuWaveRadius = 1; // Mulai animasi gelombang membesar
+            createParticles(px, py, 0, 0, 30, '#8b0000');
+            createFloatingText(px, py - 20, 'HAOSHOKU!', '#ff2222');
+        }
+
+        function createPlayerBullets() {
+            playTone(880, 0.04, 'square', 0.035, 0.001, 0); // sfx tembak auto-fire (volume lebih pelan drpd shotgun krn lebih sering)
+            state.muzzleFlashTimer = 6;
+            const bullet = {
+                x: state.player.x + 10,
+                y: state.player.y,
+                vx: 0,
+                vy: -10, // Diturunkan (sebelumnya -16, sebelum itu -8)
+                w: 4,
+                h: 10,
+                targetEnemy: null
+            };
+
+            // AIM BOT CARD: chance stacking +10%/kartu, maks 60%
+            if (state.activeCards.includes('aim_bot')) {
+                const stacks = state.cardStacks.aim_bot || 1;
+                const chance = Math.min(60, stacks * 10) / 100;
+                if (Math.random() < chance) {
+                    let maxHpEnemy = null;
+                    let maxHp = 0;
+                    state.enemies.forEach(e => {
+                        if (e.hp > maxHp) {
+                            maxHp = e.hp;
+                            maxHpEnemy = e;
+                        }
+                    });
+                    if (maxHpEnemy) bullet.targetEnemy = maxHpEnemy;
+                }
+            }
+
+            rollPoisonProc(bullet);
+            state.pBullets.push(bullet);
+        }
+
+        function shuffleArray(arr) {
+            const a = arr.slice();
+            for (let i = a.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [a[i], a[j]] = [a[j], a[i]];
+            }
+            return a;
+        }
+
+        function createEnemyBullets(x, y, count, style, homing) {
+            // Sebaran dicapai lewat OFFSET POSISI X, bukan sudut kecepatan -> tiap peluru jalan VERTIKAL LURUS (tidak miring)
+            const spread = 22; // total lebar sebaran dalam pixel
+            for (let i = 0; i < count; i++) {
+                const offsetX = count > 1 ? (i / (count - 1) - 0.5) * spread : 0;
+                state.eBullets.push({
+                    x: x + offsetX, y,
+                    vx: 0,
+                    vy: 3,
+                    w: 4,
+                    h: 4,
+                    style: style,
+                    homing: !!homing,        // Khusus boss: aim bot ringan
+                    homingActive: !!homing   // Mati begitu lewat tengah arena
+                });
+            }
+        }
+
+        function createWave() {
+            state.enemies = [];
+            const waveInCycle = ((state.wave - 1) % 5) + 1;
+
+            let config = {
+                count: 0,
+                hp: 0,
+                size: 16,
+                bulletCount: 1,
+                isBoss: false
+            };
+
+            if (waveInCycle === 1) {
+                config = { count: 2, hp: 10, size: 16, bulletCount: 1 };
+            } else if (waveInCycle === 2) {
+                config = { count: 3, hp: 10, size: 16, bulletCount: 1 };
+            } else if (waveInCycle === 3) {
+                config = { count: 5, hp: 10, size: 16, bulletCount: 1 };
+            } else if (waveInCycle === 4) {
+                config = { count: 3, hp: 20, size: 24, bulletCount: 2 };
+            } else if (waveInCycle === 5) {
+                config = { count: 1, hp: 100, size: 40, bulletCount: 2, isBoss: true };
+            }
+
+            // BALANCE: scaling kesulitan per cycle DITUNDA dulu (user minta fokus visual & sound dulu).
+            // HP musuh balik flat sesuai wave config, gak ada multiplier cycle untuk sekarang.
+
+            if (config.isBoss) {
+                sfxBossSpawn();
+                state.enemies.push({
+                    x: CANVAS_W / 2,
+                    y: 100,
+                    vx: 4, // Kecepatan kiri-kanan boss ditingkatkan (sebelumnya 2)
+                    vy: 0,
+                    w: config.size,
+                    h: config.size,
+                    hp: config.hp,
+                    maxHp: config.hp,
+                    shootCd: 0,
+                    shootInterval: 30,
+                    bulletCount: config.bulletCount,
+                    isBoss: true,
+                    stunned: false,
+                    stunTimer: 0,
+                    chainedEnemies: [],
+                    shipType: 'boss',
+                    colorScheme: pickRandom(BOSS_COLOR_SCHEMES),
+                    hurtboxScale: 1,
+                    bulletStyle: pickRandom(BULLET_STYLES)
+                });
+            } else {
+                // Tiap musuh dapat 1 jenis peluru unik (di-shuffle biar beda-beda antar musuh dalam 1 wave)
+                // + 1 MODEL UTUH random dari 12 model (bentuk+warna+hurtbox sudah terikat, bukan mix acak lagi)
+                const shuffledStyles = shuffleArray(BULLET_STYLES);
+                for (let i = 0; i < config.count; i++) {
+                    const model = pickRandom(ENEMY_MODELS);
+                    state.enemies.push({
+                        x: 50 + ((i % 3) * 120),
+                        y: 80 + Math.floor(i / 3) * 70,
+                        vx: (Math.random() > 0.5 ? 1 : -1) * 1.5,
+                        vy: 0,
+                        w: config.size,
+                        h: config.size,
+                        hp: config.hp,
+                        maxHp: config.hp,
+                        shootCd: 0,
+                        shootInterval: 30,
+                        bulletCount: config.bulletCount,
+                        isBoss: false,
+                        stunned: false,
+                        stunTimer: 0,
+                        chainedEnemies: [],
+                        shipType: model.shape,
+                        colorScheme: model.colors,
+                        hurtboxScale: model.hurtboxScale,
+                        bulletStyle: shuffledStyles[i % shuffledStyles.length]
+                    });
+                }
+            }
+        }
+
+        function updateGame() {
+            if (!state.running || state.gamePaused) return;
+
+            state.frame++;
+
+            // SCREEN SHAKE: decay per frame
+            if (state.shakeDuration > 0) {
+                state.shakeDuration--;
+                if (state.shakeDuration <= 0) state.shakeIntensity = 0;
+            }
+            if (state.muzzleFlashTimer > 0) state.muzzleFlashTimer--;
+
+            // STARFIELD: scroll bintang ke bawah, wrap ke atas kalau keluar layar
+            state.stars.forEach(s => {
+                s.y += s.speed;
+                if (s.y > CANVAS_H) {
+                    s.y = 0;
+                    s.x = Math.random() * CANVAS_W;
+                }
+            });
+
+            // PLAYER MOVEMENT
+            const k = state.keys;
+            if (k['a'] && state.player.x > 0) state.player.x -= 3;
+            if (k['d'] && state.player.x < CANVAS_W - state.player.w) state.player.x += 3;
+
+            // AUTO SHOOT
+            // AUTO SHOOT - KARTU ATTACK SPEED (v3.3): base interval 8 frame, dipercepat via getPlayerAttackSpeedMult()
+            state.playerFireCooldown -= getPlayerAttackSpeedMult();
+            if (state.playerFireCooldown <= 0) {
+                createPlayerBullets();
+                state.playerFireCooldown += 8;
+            }
+
+            // SHOTGUN CARD: cek proc tiap 1 detik (60 frame), 10% chance
+            if (state.activeCards.includes('shotgun')) {
+                state.shotgunTimer++;
+                if (state.shotgunTimer >= 60) {
+                    state.shotgunTimer = 0;
+                    const shotgunStacks = state.cardStacks.shotgun || 1;
+                    const shotgunChance = Math.min(30, shotgunStacks * 10) / 100;
+                    if (Math.random() < shotgunChance) {
+                        fireShotgunBurst();
+                    }
+                }
+            }
+
+            // HAOSHOKU NO HAKI CARD: cek proc tiap 1 detik, chance bertambah tiap trigger sukses
+            if (state.activeCards.includes('haoshoku')) {
+                state.haoshokuTimer++;
+                if (state.haoshokuTimer >= 60) {
+                    state.haoshokuTimer = 0;
+                    if (Math.random() < state.haoshokuChance) {
+                        triggerHaoshokuWave();
+                        state.haoshokuChance = Math.min(0.30, state.haoshokuChance + 0.02);
+                    }
+                }
+            }
+
+            // HAOSHOKU WAVE ANIMATION - gelombang membesar lalu selesai
+            if (state.haoshokuWaveRadius > 0) {
+                state.haoshokuWaveRadius += 20;
+                if (state.haoshokuWaveRadius > state.haoshokuWaveMaxRadius) {
+                    state.haoshokuWaveRadius = 0;
+                }
+            }
+
+            // PLAYER BULLETS
+            state.pBullets = state.pBullets.filter(b => {
+                if (b.targetEnemy) {
+                    const dx = b.targetEnemy.x - b.x;
+                    const dy = b.targetEnemy.y - b.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist > 0) {
+                        b.vx = (dx / dist) * 8; // Diturunkan (sebelumnya 14, sebelum itu 6)
+                        b.vy = (dy / dist) * 8;
+                    }
+                }
+                b.x += b.vx;
+                b.y += b.vy;
+
+                // BOUNCE: khusus peluru shotgun kiri/kanan, mantul di dinding kiri/kanan, hilang setelah 4x mantul
+                let bounceLimitReached = false;
+                if (b.bounce) {
+                    if (b.x <= 0) {
+                        b.x = 0; b.vx = Math.abs(b.vx);
+                        b.bounceCount = (b.bounceCount || 0) + 1;
+                    }
+                    if (b.x >= CANVAS_W) {
+                        b.x = CANVAS_W; b.vx = -Math.abs(b.vx);
+                        b.bounceCount = (b.bounceCount || 0) + 1;
+                    }
+                    // SPESIAL SHOTGUN: setelah minimal 1x mantul, peluru otomatis cari & kunci musuh terdekat (aim bot)
+                    if (b.bounceCount >= 1 && !b.targetEnemy) {
+                        b.targetEnemy = findNearestEnemy(b.x, b.y);
+                    }
+                    if (b.bounceCount >= 4) bounceLimitReached = true;
+                }
+
+                return b.y > -10 && b.y < CANVAS_H && !bounceLimitReached;
+            });
+
+            // ENEMIES
+            state.enemies.forEach(e => {
+                if (!e.stunned) {
+                    if (!e.isBoss) {
+                        e.x += e.vx;
+                        if (e.x <= 0) e.vx = Math.abs(e.vx);
+                        if (e.x >= CANVAS_W - e.w) e.vx = -Math.abs(e.vx);
+                    } else {
+                        e.x += e.vx;
+                        if (e.x <= 20 || e.x >= CANVAS_W - 60) e.vx *= -1;
+                    }
+
+                    e.shootCd++;
+                    if (e.shootCd >= e.shootInterval) {
+                        createEnemyBullets(e.x + e.w / 2, e.y + e.h / 2, e.bulletCount, e.bulletStyle, e.isBoss);
+                        e.shootCd = 0;
+                    }
+                } else {
+                    e.stunTimer--;
+                    if (e.stunTimer <= 0) e.stunned = false;
+                }
+            });
+
+            // POISON CARD: DOT ticking - jalan terus meski musuh sedang stun (racun gak peduli stun)
+            state.enemies.forEach(e => {
+                if (e.poisoned && e.hp > 0) {
+                    e.poisonTimer--;
+                    e.poisonTickTimer--;
+                    if (e.poisonTickTimer <= 0) {
+                        e.poisonTickTimer = 90; // reset ke 1.5 detik (60fps)
+                        e.hp -= 5;
+                        createParticles(e.x + e.w / 2, e.y + e.h / 2, 0, 0, 8, '#39ff14');
+                        sfxPoisonTick();
+                        if (e.hp <= 0) {
+                            killEnemy(e, 100, 5, '#39ff14', 15);
+                        }
+                    }
+                    if (e.poisonTimer <= 0) {
+                        e.poisoned = false;
+                    }
+                }
+            });
+
+            // ENEMY BULLETS - Boss bullet punya aim bot ringan (tracking sampai tengah arena, lalu lurus)
+            state.eBullets = state.eBullets.filter(b => {
+                if (b.homing && b.homingActive) {
+                    if (b.y < CANVAS_H / 2) {
+                        // Aim bot aktif: arahkan ke posisi player saat ini
+                        const dx = (state.player.x + state.player.w / 2) - b.x;
+                        const dy = (state.player.y + state.player.h / 2) - b.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        if (dist > 0) {
+                            const speed = 3.2;
+                            b.vx = (dx / dist) * speed;
+                            b.vy = (dy / dist) * speed;
+                        }
+                    } else {
+                        b.homingActive = false; // Lewat tengah arena -> aim bot "mati", jalan lurus
+                    }
+                }
+                b.x += b.vx;
+                b.y += b.vy;
+
+                // Peluru homing (boss) hilang kalau kena tembok kiri/kanan
+                if (b.homing && (b.x <= 0 || b.x >= CANVAS_W)) return false;
+
+                return b.y < CANVAS_H;
+            });
+
+            // METEOR2 CARD: Cek spawn setiap 1 detik (60 frame)
+            if (state.activeCards.includes('meteor2')) {
+                state.meteorSpawnCd--;
+                if (state.meteorSpawnCd <= 0) {
+                    const stacks = state.cardStacks.meteor2 || 1;
+                    const chance = Math.min(30, stacks * 5) / 100;
+                    state.meteorSpawnCd = 60;
+                    if (Math.random() < chance) {
+                        spawnMeteors();
+                    }
+                }
+            }
+
+            // METEOR2: Update posisi (bergerak ke atas dengan efek "mengal-megol")
+            state.meteors.forEach(m => {
+                m.y -= 2.5;
+                m.x = m.baseX + Math.sin((state.frame * 0.08) + m.phase) * 35;
+            });
+            state.meteors = state.meteors.filter(m => m.y > -30);
+
+            // METEOR2 vs ENEMIES: Menyerang musuh (1x hit per musuh), TIDAK menyerang player
+            state.meteors.forEach(m => {
+                state.enemies.forEach(e => {
+                    if (e.hp > 0 && !m.hitEnemies.has(e) && circleCollide(m.x, m.y, 10, e.x + e.w / 2, e.y + e.h / 2, (e.w / 2) * (e.hurtboxScale || 1))) {
+                        m.hitEnemies.add(e);
+                        e.hp -= 8;
+                        createParticles(m.x, m.y, 0, 0, 10, '#ff6600');
+                        if (e.hp <= 0) {
+                            killEnemy(e, 100, 5, '#ff6600', 15);
+                        }
+                    }
+                });
+            });
+
+            // METEOR2 vs ENEMY BULLETS: Menghancurkan peluru musuh, TIDAK menyerang peluru player
+            if (state.meteors.length > 0) {
+                state.eBullets = state.eBullets.filter(eb => {
+                    for (const m of state.meteors) {
+                        if (circleCollide(m.x, m.y, 10, eb.x, eb.y, 4)) {
+                            return false;
+                        }
+                    }
+                    return true;
+                });
+            }
+
+            // COLLISION: PLAYER BULLETS vs ENEMIES
+            state.pBullets.forEach((pb, pbIdx) => {
+                state.enemies.forEach(e => {
+                    if (e.hp > 0 && circleCollide(pb.x, pb.y, 4, e.x + e.w / 2, e.y + e.h / 2, (e.w / 2) * (e.hurtboxScale || 1))) {
+                        e.hp -= getPlayerDamage(); // KARTU DAMAGE (v3.3): base 1 + stack
+                        state.pBullets[pbIdx] = null;
+                        state.ultimateCharge += 5;
+                        state.score += 10;
+                        if (state.level < 300) addLevelProgress(1);
+                        
+                        // SUPER SHIELD CARD (v3.3): sebelumnya nambah bonus max-HP utk shield BERIKUTNYA,
+                        // sekarang setiap hit ke musuh langsung PULIHKAN +1 HP shield yang SEDANG aktif (capped shieldMaxHp)
+                        if (state.activeCards.includes('super_shield') && state.shieldActive) {
+                            state.shieldHp = Math.min(state.shieldMaxHp, state.shieldHp + 1);
+                        }
+
+                        // POISON CARD: kalau peluru ini kebagian efek racun, tempel/refresh status racun ke musuh
+                        if (pb.poisoned) {
+                            const poisonStacks = state.cardStacks.poison || 1;
+                            e.poisoned = true;
+                            e.poisonTimer = poisonStacks >= 2 ? 1200 : 900; // 20 detik (stack 2-3) / 15 detik (stack 1), 60fps
+                            e.poisonTickTimer = 90; // tick tiap 1.5 detik
+                        }
+
+                        // ELECTRO CHAIN: Damage spread ke musuh yang masih terhubung rantai (selama chainTimer aktif)
+                        // BUG FIX: sebelumnya musuh yang mati KARENA damage rantai ini gak pernah lewat killEnemy()
+                        // jadi gak dapat score/exp/particle sama sekali - sekarang di-fix biar proper.
+                        if (state.activeCards.includes('electro_chain') && state.chainTimer > 0 && e.chainedEnemies) {
+                            e.chainedEnemies.forEach(chained => {
+                                if (chained && chained.hp > 0) {
+                                    chained.hp -= getPlayerDamage(); // KARTU DAMAGE (v3.3) ikut berlaku di chain spread
+                                    if (chained.hp <= 0) {
+                                        killEnemy(chained, 100, 5);
+                                    }
+                                }
+                            });
+                        }
+
+                        if (e.hp <= 0) {
+                            killEnemy(e, 100, 5);
+                        }
+                    }
+                });
+            });
+            state.pBullets = state.pBullets.filter(b => b !== null);
+
+            // COLLISION: ENEMY BULLETS vs PLAYER
+            state.eBullets = state.eBullets.filter(eb => {
+                if (circleCollide(eb.x, eb.y, 4, state.player.x + state.player.w / 2, state.player.y + state.player.h / 2, 10)) {
+                    // DODGE CARD: cek elak dulu sebelum shield/damage
+                    if (state.activeCards.includes('dodge') && Math.random() < state.dodgeChance) {
+                        state.dodgeChance = Math.min(0.70, state.dodgeChance + 0.05);
+                        createParticles(state.player.x + state.player.w / 2, state.player.y + state.player.h / 2, 0, 0, 12, '#ffffff');
+                        createFloatingText(state.player.x + state.player.w / 2, state.player.y - 10, 'MISS!', '#ffffff');
+                        sfxDodge();
+                        return false; // berhasil elak, tidak kena damage sama sekali
+                    }
+
+                    if (state.shieldActive) {
+                        // SUPER SHIELD: Has HP
+                        if (state.activeCards.includes('super_shield')) {
+                            state.shieldHp -= 1;
+                            if (state.shieldHp <= 0) {
+                                state.shieldActive = false;
+                            }
+                        }
+                    } else {
+                        // KARTU DEFENSE (v3.3): kurangi damage peluru musuh, minimal tetap 1 damage (gak bisa jadi imun total)
+                        state.player.hp -= Math.max(1, 10 - getPlayerDefense());
+                        createParticles(state.player.x, state.player.y, 0, 0, 15, '#ff0000');
+                        sfxPlayerHurt();
+                        triggerScreenShake(5, 10);
+                    }
+                    return false;
+                }
+                return true;
+            });
+
+            // PARTICLES
+            state.particles = state.particles.filter(p => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life--;
+                return p.life > 0;
+            });
+
+            // FLOATING TEXTS (MISS!, dsb) - melayang ke atas lalu memudar
+            state.floatingTexts = state.floatingTexts.filter(t => {
+                t.y += t.vy;
+                t.life--;
+                return t.life > 0;
+            });
+
+            // SHIELD DURATION - Regular shield hilang setelah waktu, Super Shield tidak
+            if (state.shieldActive) {
+                if (!state.activeCards.includes('super_shield')) {
+                    state.shieldDuration--;
+                    if (state.shieldDuration <= 0) state.shieldActive = false;
+                }
+                // Super Shield: hanya hilang jika HP habis (di-handle di collision)
+            }
+
+            // COOLDOWN TICKERS
+            if (state.shockwaveCd > 0) state.shockwaveCd--;
+            if (state.shieldCd > 0) state.shieldCd--;
+            if (state.regenCd > 0) state.regenCd--;
+            if (state.ultimateCd > 0) state.ultimateCd--;
+            if (state.chainTimer > 0) state.chainTimer--;
+
+            // ULTIMATE CAST FLASH - hitung mundur flash solid (tanpa kedip) setelah ultimate DIPAKAI
+            if (state.ultimateCastFlashTimer > 0) state.ultimateCastFlashTimer--;
+
+            // WAVE PROGRESSION
+            state.enemies = state.enemies.filter(e => e.hp > 0);
+            if (state.enemies.length === 0) {
+                state.wave++;
+                if (state.wave % 5 === 1 && state.wave > 1) {
+                    state.cycle++;
+                }
+                createWave();
+            }
+
+            if (state.ultimateCharge > state.ultimateMax) state.ultimateCharge = state.ultimateMax;
+
+            if (state.player.hp <= 0) {
+                state.running = false;
+                showGameOver();
+            }
+
+            updateUI();
+        }
+
+        function updateUI() {
+            document.getElementById('cycleVal').textContent = state.cycle;
+            const waveDisplay = state.wave % 5 === 0 ? 5 : state.wave % 5;
+            document.getElementById('waveTopVal').textContent = waveDisplay;
+            document.getElementById('enemyVal').textContent = state.enemies.length;
+            const hpNow = Math.max(0, Math.floor(state.player.hp));
+            document.getElementById('hpBarText').textContent = hpNow + '/' + state.player.maxHp;
+            document.getElementById('hpBarFill').style.width = Math.max(0, (hpNow / state.player.maxHp * 100)) + '%';
+            document.getElementById('scoreVal').textContent = state.score;
+            document.getElementById('killedVal').textContent = state.enemiesDefeated;
+            document.getElementById('levelNum').textContent = state.level;
+            if (state.level >= 300) {
+                document.getElementById('levelProgress').textContent = 'MAX';
+                document.getElementById('levelExpSuffix').style.display = 'none';
+                document.getElementById('levelBarFill').style.width = '100%';
+            } else {
+                document.getElementById('levelProgress').textContent = state.levelProgress;
+                document.getElementById('levelExpSuffix').style.display = 'inline';
+                document.getElementById('levelBarFill').style.width = (state.levelProgress / 50 * 100) + '%';
+            }
+            document.getElementById('ultimateBarFill').style.width = (state.ultimateCharge / state.ultimateMax * 100) + '%';
+
+            // Update skill button CD indicators
+            updateSkillBtn('btnShock', state.shockwaveCd, 180, '⚡');
+            updateSkillBtn('btnShield', state.shieldCd, state.activeCards.includes('super_shield') ? 480 : 240, '🛡️');
+            updateSkillBtn('btnRegen', state.regenCd, 420, '💚');
+            const ultReady = state.ultimateCharge >= state.ultimateMax && state.ultimateCd <= 0;
+            updateSkillBtn('btnUltimate', ultReady ? 0 : 1, 1, '✨');
+        }
+
+        const SKILL_BTN_COLORS = {
+            btnShock: 'radial-gradient(circle at 35% 30%, #ffee88, #ffaa00 70%)',
+            btnShield: 'radial-gradient(circle at 35% 30%, #aaddff, #2288ee 70%)',
+            btnRegen: 'radial-gradient(circle at 35% 30%, #aaffbb, #22cc55 70%)',
+            btnUltimate: 'radial-gradient(circle at 35% 30%, #ffeeaa, #ffcc00 70%)'
+        };
+
+        function updateSkillBtn(id, cd, maxCd, emoji) {
+            const btn = document.getElementById(id);
+            if (!btn) return;
+            if (cd > 0) {
+                const secs = Math.ceil(cd / 60);
+                btn.textContent = secs + 's';
+                btn.style.opacity = '0.4';
+                btn.style.background = 'linear-gradient(135deg, #334444, #223333)';
+            } else {
+                btn.textContent = emoji;
+                btn.style.opacity = '1';
+                btn.style.background = SKILL_BTN_COLORS[id] || 'radial-gradient(circle at 35% 30%, #77ffee, #00aa99 70%)';
+            }
+        }
+
+        function drawGame() {
+            // SCREEN SHAKE: geser seluruh canvas dikit secara random selama shakeDuration aktif
+            ctx.save();
+            if (state.shakeIntensity > 0) {
+                const sx = (Math.random() - 0.5) * state.shakeIntensity;
+                const sy = (Math.random() - 0.5) * state.shakeIntensity;
+                ctx.translate(sx, sy);
+            }
+
+            // BACKGROUND
+            ctx.fillStyle = '#0a0a1a';
+            ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+            // STARFIELD: bintang parallax scrolling (efek kedalaman/depth)
+            state.stars.forEach(s => {
+                ctx.globalAlpha = s.alpha;
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            ctx.globalAlpha = 1;
+
+            // GRID
+            ctx.strokeStyle = 'rgba(170, 0, 255, 0.2)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 10; i++) {
+                ctx.beginPath();
+                ctx.moveTo(0, (CANVAS_H / 10) * i);
+                ctx.lineTo(CANVAS_W, (CANVAS_H / 10) * i);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo((CANVAS_W / 10) * i, 0);
+                ctx.lineTo((CANVAS_W / 10) * i, CANVAS_H);
+                ctx.stroke();
+            }
+
+            // PLAYER - Render sebagai ship dengan skin terpilih
+            drawPlayerShip(state.player);
+
+            // MUZZLE FLASH: kilatan terang singkat di moncong senjata saat baru nembak
+            if (state.muzzleFlashTimer > 0) {
+                const fx = state.player.x + state.player.w / 2;
+                const fy = state.player.y;
+                const flashAlpha = state.muzzleFlashTimer / 8;
+                ctx.save();
+                ctx.globalAlpha = flashAlpha;
+                const flashGrad = ctx.createRadialGradient(fx, fy, 0, fx, fy, 14);
+                flashGrad.addColorStop(0, 'rgba(255, 255, 220, 0.9)');
+                flashGrad.addColorStop(0.5, 'rgba(120, 220, 255, 0.5)');
+                flashGrad.addColorStop(1, 'rgba(120, 220, 255, 0)');
+                ctx.fillStyle = flashGrad;
+                ctx.beginPath();
+                ctx.arc(fx, fy, 14, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+
+            // SHIELD
+            if (state.shieldActive) {
+                if (state.activeCards.includes('super_shield')) {
+                    // SUPER SHIELD: Lingkaran biru
+                    ctx.strokeStyle = '#0088ff';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.arc(state.player.x + state.player.w / 2, state.player.y + state.player.h / 2, 35, 0, Math.PI * 2);
+                    ctx.stroke();
+                    
+                    // HP Bar biru (seperti HP musuh tapi biru)
+                    const shieldHpPercent = state.shieldHp / state.shieldMaxHp;
+                    const barW = state.player.w + 10;
+                    const barX = state.player.x - 5;
+                    const barY = state.player.y - 8;
+                    // Background bar
+                    ctx.fillStyle = '#001133';
+                    ctx.fillRect(barX, barY, barW, 4);
+                    // HP fill biru
+                    ctx.fillStyle = shieldHpPercent > 0.3 ? '#0088ff' : '#ff6600';
+                    ctx.fillRect(barX, barY, barW * Math.max(0, shieldHpPercent), 4);
+                } else {
+                    // Regular shield
+                    ctx.strokeStyle = '#00ffff';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.arc(state.player.x + state.player.w / 2, state.player.y + state.player.h / 2, 35, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+            }
+
+            // PLAYER BULLETS - Energy blast FX
+            state.pBullets.forEach(b => {
+                drawPlayerBulletFX(b);
+            });
+
+            // ELECTRO CHAINS - Draw connections (hanya selama chainTimer aktif)
+            if (state.activeCards.includes('electro_chain') && state.chainTimer > 0) {
+                ctx.strokeStyle = 'rgba(255, 255, 0, 0.6)';
+                ctx.lineWidth = 2;
+                state.enemies.forEach(e => {
+                    if (e.chainedEnemies && e.chainedEnemies.length > 0) {
+                        e.chainedEnemies.forEach(chained => {
+                            if (chained && chained.hp > 0) {
+                                ctx.beginPath();
+                                ctx.moveTo(e.x + e.w / 2, e.y + e.h / 2);
+                                ctx.lineTo(chained.x + chained.w / 2, chained.y + chained.h / 2);
+                                ctx.stroke();
+                            }
+                        });
+                    }
+                });
+            }
+
+            // ENEMIES - Render sebagai ship silhouette (random shipType + colorScheme)
+            state.enemies.forEach(e => {
+                drawEnemyShip(e);
+
+                if (e.stunned) {
+                    const cx = e.x + e.w / 2;
+                    const cy = e.y + e.h / 2;
+                    const stunR = e.w / 2 + 5;
+                    const isHaoshokuStun = e.stunSource === 'haoshoku';
+
+                    // Lingkaran stun: MERAH khusus Haoshoku no Haki, KUNING untuk Shockwave Q biasa
+                    ctx.strokeStyle = isHaoshokuStun ? '#ff2222' : '#ffff00';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, stunR, 0, Math.PI * 2);
+                    ctx.stroke();
+
+                    // Aksen listrik merah HANYA untuk stun dari Haoshoku no Haki
+                    if (isHaoshokuStun) {
+                        ctx.strokeStyle = '#ff7777';
+                        ctx.lineWidth = 1;
+                        const boltCount = 4;
+                        for (let i = 0; i < boltCount; i++) {
+                            const angle = (i / boltCount) * Math.PI * 2 + state.frame * 0.12;
+                            const bx = cx + Math.cos(angle) * stunR;
+                            const by = cy + Math.sin(angle) * stunR;
+                            const zx = bx + Math.cos(angle + 0.6) * 4;
+                            const zy = by + Math.sin(angle + 0.6) * 4;
+                            ctx.beginPath();
+                            ctx.moveTo(bx, by);
+                            ctx.lineTo(zx, zy);
+                            ctx.stroke();
+                        }
+                    }
+                }
+
+                // POISON CARD: ring hijau radioaktif + gelembung racun naik, musuh yang lagi kena racun
+                if (e.poisoned) {
+                    const cx = e.x + e.w / 2;
+                    const cy = e.y + e.h / 2;
+                    const poisonR = e.w / 2 + 5;
+
+                    ctx.save();
+                    ctx.strokeStyle = '#39ff14';
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([4, 3]);
+                    ctx.lineDashOffset = -state.frame * 0.3;
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, poisonR, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+
+                    // Gelembung racun kecil naik ke atas (efek toxic bubbling)
+                    ctx.fillStyle = 'rgba(57, 255, 20, 0.7)';
+                    for (let i = 0; i < 3; i++) {
+                        const bubbleT = ((state.frame * 0.02) + i * 0.33) % 1;
+                        const bx = cx + Math.sin(i * 2.1 + state.frame * 0.05) * (e.w / 3);
+                        const by = cy + e.h / 2 - bubbleT * (e.h + 12);
+                        ctx.beginPath();
+                        ctx.arc(bx, by, 1.5 + (1 - bubbleT) * 1.5, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    ctx.restore();
+                }
+
+                const hpPercent = e.hp / e.maxHp;
+                ctx.fillStyle = hpPercent > 0.3 ? '#00ff00' : '#ff0000';
+                ctx.fillRect(e.x, e.y - 5, e.w * hpPercent, 3);
+            });
+
+            // ENEMY BULLETS - Render dengan gaya bervariasi (random per bullet)
+            state.eBullets.forEach(b => {
+                drawEnemyBullet(b);
+            });
+
+            // METEOR2 - Render meteor (tidak menyerang player/peluru player)
+            state.meteors.forEach(m => {
+                ctx.fillStyle = '#ff6600';
+                ctx.beginPath();
+                ctx.arc(m.x, m.y, 10, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#ffaa00';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                ctx.fillStyle = '#ffff00';
+                ctx.beginPath();
+                ctx.arc(m.x, m.y, 4, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // ULTIMATE VISUAL - 2 kondisi terpisah:
+            // 1) READY (bar penuh & CD siap): area berkedip-kedip TERUS selama masih siap pakai
+            // 2) CAST (baru saja dipakai): area solid sepersekian detik TANPA kedip
+            if (!state.gamePaused) {
+                const ultimateWidth = 130;
+                const beamX = state.player.x + state.player.w / 2 - ultimateWidth / 2;
+
+                if (state.ultimateCastFlashTimer > 0) {
+                    // CAST FLASH - solid, tidak berkedip
+                    ctx.fillStyle = 'rgba(0, 255, 255, 0.35)';
+                    ctx.fillRect(beamX, 0, ultimateWidth, CANVAS_H);
+                    ctx.strokeStyle = 'rgba(0, 255, 255, 0.75)';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(beamX, 0, ultimateWidth, CANVAS_H);
+                } else if (state.ultimateCharge >= state.ultimateMax && state.ultimateCd <= 0) {
+                    // READY - berkedip-kedip terus menerus selama siap pakai
+                    const flashAlpha = 0.12 + 0.12 * Math.sin(state.frame * 0.35);
+                    ctx.fillStyle = `rgba(0, 255, 255, ${flashAlpha})`;
+                    ctx.fillRect(beamX, 0, ultimateWidth, CANVAS_H);
+                    ctx.strokeStyle = 'rgba(0, 255, 255, 0.5)';
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([5, 5]);
+                    ctx.strokeRect(beamX, 0, ultimateWidth, CANVAS_H);
+                    ctx.setLineDash([]);
+                }
+            }
+
+            // HAOSHOKU WAVE VISUAL - gelombang merah gelap membesar + aksen petir merah
+            if (state.haoshokuWaveRadius > 0) {
+                const px = state.player.x + state.player.w / 2;
+                const py = state.player.y + state.player.h / 2;
+                const r = state.haoshokuWaveRadius;
+                const progress = r / state.haoshokuWaveMaxRadius;
+                const alpha = Math.max(0, 1 - progress);
+
+                // Ring gelombang tebal warna merah gelap
+                ctx.strokeStyle = `rgba(139, 0, 0, ${alpha * 0.7})`;
+                ctx.lineWidth = 10;
+                ctx.beginPath();
+                ctx.arc(px, py, r, 0, Math.PI * 2);
+                ctx.stroke();
+
+                ctx.strokeStyle = `rgba(180, 20, 20, ${alpha * 0.4})`;
+                ctx.lineWidth = 20;
+                ctx.beginPath();
+                ctx.arc(px, py, Math.max(0, r - 12), 0, Math.PI * 2);
+                ctx.stroke();
+
+                // Aksen petir merah terang menyebar di sekeliling ring
+                ctx.strokeStyle = `rgba(255, 40, 40, ${alpha})`;
+                ctx.lineWidth = 2;
+                const boltCount = 8;
+                for (let i = 0; i < boltCount; i++) {
+                    const angle = (i / boltCount) * Math.PI * 2 + state.frame * 0.08;
+                    const bx = px + Math.cos(angle) * r;
+                    const by = py + Math.sin(angle) * r;
+                    const zx1 = bx + Math.cos(angle + 0.4) * 9;
+                    const zy1 = by + Math.sin(angle + 0.4) * 9;
+                    const zx2 = bx + Math.cos(angle - 0.35) * 6;
+                    const zy2 = by + Math.sin(angle - 0.35) * 6;
+                    ctx.beginPath();
+                    ctx.moveTo(bx, by);
+                    ctx.lineTo(zx1, zy1);
+                    ctx.lineTo(zx2, zy2);
+                    ctx.stroke();
+                }
+            }
+
+            // PARTICLES
+            state.particles.forEach(p => {
+                const alpha = Math.floor((p.life / p.maxLife) * 255).toString(16).padStart(2, '0');
+                ctx.fillStyle = p.color + alpha;
+                ctx.fillRect(p.x - 1, p.y - 1, 2, 2);
+            });
+
+            // FLOATING TEXTS (MISS!, dsb) - melayang ke atas sambil memudar
+            state.floatingTexts.forEach(t => {
+                ctx.globalAlpha = Math.max(0, t.life / t.maxLife);
+                ctx.fillStyle = t.color;
+                ctx.font = 'bold 13px "Courier New", monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText(t.text, t.x, t.y);
+                ctx.globalAlpha = 1;
+            });
+            ctx.textAlign = 'left';
+            ctx.restore(); // tutup transform screen shake
+        }
+
+        // FIX BUG KECEPATAN BEDA-BEDA ANTAR PERANGKAT (v3.4 lanjutan):
+        // Sebelumnya updateGame() dipanggil TIAP requestAnimationFrame tanpa batasan, jadi di layar
+        // refresh rate tinggi (90Hz/120Hz/144Hz - umum di HP & laptop modern) logic game (gerak kiri-kanan,
+        // auto-fire, cooldown, dll - semua "per-panggilan" bukan "per-waktu") ikut jalan 1.5x-2.4x lebih
+        // cepat drpd di layar 60Hz. FIX: fixed-timestep dgn accumulator - updateGame() SEKARANG dikunci
+        // jalan ~60x/detik REAL TIME di perangkat manapun, drawGame() tetap render tiap frame (smooth visual).
+        const FIXED_DT = 1000 / 60;
+        let gameLoopLastTime = null;
+        let gameLoopAccumulator = 0;
+
+        function gameLoop(timestamp) {
+            if (gameLoopLastTime === null) gameLoopLastTime = timestamp;
+            let delta = timestamp - gameLoopLastTime;
+            gameLoopLastTime = timestamp;
+
+            if (delta > 250) delta = 250; // cap, biar kalau tab sempat freeze/lag parah gak "meledak" jadi ratusan update sekaligus
+
+            gameLoopAccumulator += delta;
+            while (gameLoopAccumulator >= FIXED_DT) {
+                updateGame();
+                gameLoopAccumulator -= FIXED_DT;
+            }
+
+            drawGame();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function keyDown(key) {
+            state.keys[key] = true;
+        }
+
+        function keyUp(key) {
+            delete state.keys[key];
+        }
+
+        function activateShockwave() {
+            if (state.shockwaveCd <= 0 && state.running && !state.gamePaused) {
+                state.shockwaveCd = 180; // 3 detik @ 60fps
+                const stunDuration = 120; // Durasi stun TETAP 2 detik, tidak dipengaruhi stack
+                
+                // ELECTRO CHAIN CARD: Buat rantai antar musuh (reset dulu biar tidak dobel)
+                if (state.activeCards.includes('electro_chain') && state.enemies.length > 1) {
+                    state.enemies.forEach(e => { e.chainedEnemies = []; });
+
+                    for (let i = 0; i < state.enemies.length; i++) {
+                        for (let j = i + 1; j < state.enemies.length; j++) {
+                            const e1 = state.enemies[i];
+                            const e2 = state.enemies[j];
+                            const dx = e1.x - e2.x;
+                            const dy = e1.y - e2.y;
+                            const dist = Math.sqrt(dx * dx + dy * dy);
+                            if (dist < 200) {
+                                e1.chainedEnemies.push(e2);
+                                e2.chainedEnemies.push(e1);
+                            }
+                        }
+                    }
+
+                    // Durasi RANTAI (bukan stun): 2 detik dasar + 1 detik per kartu tambahan
+                    const chainStacks = state.cardStacks.electro_chain || 1;
+                    state.chainTimer = 120 + (chainStacks - 1) * 60;
+                }
+                
+                state.enemies.forEach(e => {
+                    e.stunned = true;
+                    e.stunTimer = stunDuration;
+                    e.stunSource = 'shockwave'; // Sumber stun = Shockwave Q biasa -> visual kuning, tanpa petir
+                    if (!e.chainedEnemies) e.chainedEnemies = [];
+                });
+                createParticles(state.player.x, state.player.y, 0, 0, 30, '#ffff00');
+            }
+        }
+
+        function activateShield() {
+            if (state.shieldCd <= 0 && state.running && !state.gamePaused && !state.shieldActive) {
+                const hasSuperShield = state.activeCards.includes('super_shield');
+                state.shieldCd = hasSuperShield ? 480 : 240; // 8s atau 4s
+                state.shieldActive = true;
+                state.shieldDuration = 240; // 4s untuk regular shield
+                
+                if (hasSuperShield) {
+                    // Super Shield (v3.3): sistem bonus max-HP DIHAPUS, sekarang shield HP selalu mulai dari base
+                    // (penyembuhan terjadi REAL-TIME saat shield aktif via hit ke musuh, bukan lagi bonus utk shield BERIKUTNYA)
+                    state.shieldHp = state.shieldMaxHp;
+                }
+                
+                createParticles(state.player.x, state.player.y, 0, 0, 20, '#00ffff');
+            }
+        }
+
+        function activateRegen() {
+            if (state.regenCd <= 0 && state.running && !state.gamePaused) {
+                state.regenCd = 420; // 7 detik @ 60fps
+                state.player.hp = Math.min(state.player.hp + 50, state.player.maxHp);
+                createParticles(state.player.x, state.player.y, 0, 0, 20, '#00ff00');
+            }
+        }
+
+        function activateUltimate() {
+            if (state.ultimateCharge >= state.ultimateMax && state.ultimateCd <= 0 && state.running && !state.gamePaused) {
+                sfxUltimate();
+                triggerScreenShake(10, 20);
+                const ultimateWidth = 130;
+                
+                // NERF v1.6: damage ultimate = 1/2 dari TOTAL HP musuh (maxHp), bukan HP saat ini
+                state.enemies.forEach(e => {
+                    const distFromCenter = Math.abs((e.x + e.w / 2) - (state.player.x + state.player.w / 2));
+                    if (distFromCenter <= ultimateWidth / 2) {
+                        const dmg = Math.max(1, Math.ceil(e.maxHp / 2));
+                        e.hp -= dmg;
+                        createParticles(e.x, e.y, 0, 0, 15, '#00ffff');
+                        if (e.hp <= 0) {
+                            killEnemy(e, 200, 10, '#00ffff', 30);
+                        }
+                    }
+                });
+                state.enemies = state.enemies.filter(e => e.hp > 0);
+
+                state.ultimateCharge = 0;
+                state.ultimateCd = 960;        // 16 detik @ 60fps
+
+                // CAST FLASH: muncul solid TANPA kedip sepersekian detik (15 frame = 0.25s) saat DIPAKAI
+                state.ultimateCastFlashTimer = 15;
+
+                createParticles(state.player.x, state.player.y, 0, -5, 50, '#00ffff');
+            }
+        }
+
+        function startGame() {
+            document.getElementById('startMenu').classList.add('hidden');
+            state.running = true;
+            state.gamePaused = false;
+            state.player.hp = 450;
+            state.player.maxHp = 450; // FIX: sebelumnya gak di-reset, jadi kalau abis dapat kartu HP_UP lalu restart, max HP kebawa dari run sebelumnya
+            state.player.x = 190;
+            state.playerFireCooldown = 8;
+            state.score = 0;
+            state.levelProgress = 0;
+            state.level = 1;
+            state.cycle = 1;
+            state.wave = 1;
+            state.enemiesDefeated = 0;
+            state.ultimateCharge = 0;
+            state.ultimateCastFlashTimer = 0;
+            state.ultimateCd = 0;
+            state.shockwaveCd = 0;
+            state.shieldCd = 0;
+            state.regenCd = 0;
+            state.shieldActive = false;
+            state.shieldHp = 0;
+            state.activeCards = [];
+            state.cardStacks = { aim_bot: 0, electro_chain: 0, meteor2: 0, shotgun: 0, poison: 0, atk_up: 0, aspd_up: 0, def_up: 0, hp_up: 0 };
+            state.chainTimer = 0;
+            state.meteors = [];
+            state.meteorSpawnCd = 60;
+            state.shotgunTimer = 0;
+            state.dodgeChance = 0;
+            state.haoshokuChance = 0;
+            state.haoshokuTimer = 0;
+            state.haoshokuWaveRadius = 0;
+            state.pBullets = [];
+            state.enemies = [];
+            state.eBullets = [];
+            state.particles = [];
+            state.floatingTexts = [];
+            updateActiveCardsDisplay();
+            initStars();
+            createWave();
+            startMusic();
+            gameLoopLastTime = null;
+            gameLoopAccumulator = 0;
+            requestAnimationFrame(gameLoop);
+        }
+
+        function showGameOver() {
+            sfxGameOver();
+            stopMusic();
+            document.getElementById('gameOverCycle').textContent = state.cycle;
+            document.getElementById('gameOverWave').textContent = state.wave % 5 === 0 ? 5 : state.wave % 5;
+            document.getElementById('gameOverLevel').textContent = state.level;
+            document.getElementById('gameOverScore').textContent = state.score;
+            document.getElementById('gameOverEnemies').textContent = state.enemiesDefeated;
+            document.getElementById('gameOverHPLost').textContent = 450 - Math.floor(state.player.hp);
+            document.getElementById('gameOverMenu').classList.remove('hidden');
+        }
+
+        function restartGame() {
+            document.getElementById('gameOverMenu').classList.add('hidden');
+            startGame();
+        }
+
+        window.addEventListener('keydown', e => {
+            const key = e.key.toLowerCase();
+            if (['a', 'd'].includes(key)) keyDown(key);
+            if (key === 'q') activateShockwave();
+            if (key === 'w') activateShield();
+            if (key === 'e') activateRegen();
+            if (key === ' ') { e.preventDefault(); activateUltimate(); }
+        });
+
+        window.addEventListener('keyup', e => {
+            const key = e.key.toLowerCase();
+            if (['a', 'd'].includes(key)) keyUp(key);
+        });
+
+        // Cegah select teks (drag-select) & menu klik-kanan/tap-hold, biar tidak mengganggu saat main
+        document.addEventListener('selectstart', e => e.preventDefault());
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        document.addEventListener('dragstart', e => e.preventDefault());
+
+        // Render preview skin pesawat begitu halaman siap
+        renderSkinPreviews();
+    </script>
+</body>
+</html>
